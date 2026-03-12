@@ -43,6 +43,7 @@
                                     <div class="dropdown">
                                         <a href="#" class="text-secondary p-1" data-bs-toggle="dropdown" title="İşlemler" @@click.prevent><i class="fas fa-cog"></i></a>
                                         <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="#" @@click.prevent="atananlarAc(kart)"><i class="fas fa-users me-1"></i> Atanan kişiler</a></li>
                                             <li><a class="dropdown-item" href="#" @@click.prevent="logAc(kart)">Log</a></li>
                                             <li><a class="dropdown-item" href="#" @@click.prevent="gorevDuzenle(kart)">Güncelle</a></li>
                                             <li><a class="dropdown-item text-danger" href="#" @@click.prevent="gorevSil(kart)">Sil</a></li>
@@ -93,6 +94,23 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="atananlarModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Atanan kişiler - {{ atananlarGorevAd }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <div class="mb-3">
+                <label class="form-label small text-muted mb-0">Tür</label>
+                <div class="fw-medium">{{ atananlarTuruMetin }}</div>
+            </div>
+            <div v-if="atananlarTuruMetin === 'Kişilere'">
+                <label class="form-label small text-muted mb-1">Atanan kişiler</label>
+                <ul v-if="atananlarListesi.length" class="list-group list-group-flush">
+                    <li v-for="ad in atananlarListesi" :key="ad" class="list-group-item py-2">{{ ad }}</li>
+                </ul>
+                <p v-else class="text-muted small mb-0">Bu göreve henüz kimse atanmamış.</p>
+            </div>
+        </div>
+    </div></div></div>
 
     <div class="modal fade" id="logModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
         <div class="modal-header"><h5 class="modal-title">Durum Log - {{ logGorevAd }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
@@ -149,10 +167,14 @@ createApp({
             yeniYorum: '',
             renkPaleti: ['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899'],
             durumLog: [],
-            logGorevAd: ''
+            logGorevAd: '',
+            atananlarGorevAd: '',
+            atananlarTuru: 0,
+            atananlarListesi: []
         };
     },
     computed: {
+        atananlarTuruMetin() { return this.atananlarTuru === 1 ? 'Kişilere' : 'Kendime'; },
         kanbanKolonlari() { return (this.kanban.durumlar || []).filter(d => d.id !== 4 && d.id !== 5); },
         tamamlananlar() { return (this.kanban.tamamlananIptalSon50 || []).filter(k => k.durumId === 5); },
         iptalEdilenler() { return (this.kanban.tamamlananIptalSon50 || []).filter(k => k.durumId === 4); }
@@ -183,6 +205,7 @@ createApp({
         renkSecildi(kart, c) { kart.renk = c; axios.put('/api/Gorevler/' + kart.id, { ad: kart.ad, aciklama: kart.aciklama || '', durumId: kart.durumId, renk: c }).then(() => this.yukle()); },
         gorevDuzenle(kart) { this.duzenlenenKart = kart; this.gorevForm = { id: kart.id, ad: kart.ad, aciklama: kart.aciklama || '', turu: kart.turu, atananKullaniciIds: [], gorevGrubuId: this.grupId }; new bootstrap.Modal(document.getElementById('gorevModal')).show(); },
         gorevSil(kart) { if (!confirm('Bu görevi silmek istediğinize emin misiniz?')) return; axios.delete('/api/Gorevler/' + kart.id).then(() => this.yukle()); },
+        atananlarAc(kart) { this.atananlarGorevAd = kart.ad; this.atananlarTuru = kart.turu ?? 0; this.atananlarListesi = kart.atananlar && Array.isArray(kart.atananlar) ? kart.atananlar.filter(Boolean) : []; new bootstrap.Modal(document.getElementById('atananlarModal')).show(); },
         logAc(kart) { this.logGorevAd = kart.ad; this.durumLog = []; axios.get('/api/Gorevler/' + kart.id + '/durum-log').then(r => { this.durumLog = r.data; }); new bootstrap.Modal(document.getElementById('logModal')).show(); },
         yorumAc(kart) { this.seciliGorev = kart; this.yeniYorum = ''; axios.get('/api/Gorevler/' + kart.id + '/yorumlar').then(r => { this.gorevYorumlar = r.data; }); new bootstrap.Modal(document.getElementById('yorumModal')).show(); },
         yorumGonder() { if (!this.yeniYorum.trim() || !this.seciliGorev) return; axios.post('/api/Gorevler/' + this.seciliGorev.id + '/yorumlar', { yorumMetni: this.yeniYorum }).then(() => { this.gorevYorumlar.unshift({ yorumMetni: this.yeniYorum, insertDate: new Date(), dosyalar: [] }); this.yeniYorum = ''; this.yukle(); }); }

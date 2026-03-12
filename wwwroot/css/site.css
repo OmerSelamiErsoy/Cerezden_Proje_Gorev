@@ -1,22 +1,81 @@
+/* Public layout - Home, Privacy */
+:root {
+    --public-primary: #0d9488;
+    --public-primary-hover: #0f766e;
+    --public-header-bg: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    --public-footer-bg: #0f172a;
+    --public-main-bg: #f8fafc;
+}
+
+body.layout-public {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--public-main-bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    color: #334155;
+    -webkit-font-smoothing: antialiased;
+}
+
+.layout-public-header {
+    background: var(--public-header-bg);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.layout-public-header .navbar-brand {
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+}
+
+.layout-public-header .nav-link {
+    color: rgba(255, 255, 255, 0.85) !important;
+    font-weight: 500;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.layout-public-header .nav-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff !important;
+}
+
+.layout-public-main {
+    flex: 1;
+}
+
+.layout-public-footer {
+    background: var(--public-footer-bg);
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: auto;
+}
+
+.layout-public-footer .hover-light:hover {
+    color: #fff !important;
+}
+
+/* Public page content */
+.layout-public .display-4 {
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: #0f172a;
+}
+
+.layout-public main a:not(.nav-link):not(.btn) {
+    color: var(--public-primary);
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.layout-public main a:not(.nav-link):not(.btn):hover {
+    color: var(--public-primary-hover);
+}
+
+/* Form focus (shared) */
+.btn:focus, .btn:active:focus, .form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.2rem rgba(13, 148, 136, 0.25);
+}
+
 html {
-  font-size: 14px;
-}
-
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
-}
-
-body {
-  margin-bottom: 60px;
+    position: relative;
+    min-height: 100%;
 }

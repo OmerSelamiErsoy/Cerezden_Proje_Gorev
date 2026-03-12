@@ -43,8 +43,11 @@ public class GorevGrubuController : ControllerBase
             .ToListAsync(ct);
 
         var tumGrupIds = benimGruplarim.Select(x => x.Id).Union(digerGruplar.Select(x => x.Id)).Distinct().ToList();
+        // Sadece benim eklediğim veya bana atanan görevlerin sayısı (atananGorevIds zaten yukarıda yüklendi)
+        var benimOlusturdugumGorevIds = await _db.Gorevler.Where(g => g.OlusturanKullaniciId == userId).Select(g => g.Id).ToListAsync(ct);
+        var benimGorevIds = benimOlusturdugumGorevIds.Union(atananGorevIds).Distinct().ToList();
         var gorevSayilari = await _db.Gorevler
-            .Where(g => g.GorevGrubuId != null && tumGrupIds.Contains(g.GorevGrubuId!.Value))
+            .Where(g => g.GorevGrubuId != null && tumGrupIds.Contains(g.GorevGrubuId!.Value) && benimGorevIds.Contains(g.Id))
             .GroupBy(g => g.GorevGrubuId!.Value)
             .Select(x => new { GrupId = x.Key, Sayi = x.Count() })
             .ToListAsync(ct);

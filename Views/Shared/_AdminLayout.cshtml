@@ -7,7 +7,7 @@
     <title>@ViewData["Title"] - Proje & Görev Yönetimi</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link href="https://cdn.jsdelivr.net/npm/@@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
@@ -38,7 +38,7 @@
                     <button type="button" class="topbar-menu-btn d-lg-none" id="topbarMenuBtn" aria-label="Menüyü aç"><i class="fas fa-bars"></i></button>
                     <h1 class="topbar-title mb-0">@ViewData["Title"]</h1>
                 </div>
-                <a href="@(Configuration["redirectMainProjectUrl"] ?? "http://cerezdenyonetim.com")" target="_blank" rel="noopener noreferrer" class="btn btn-danger btn-sm rounded-3 px-3">Çerezden'e Dön</a>
+                <a href="@(Configuration["redirectMainProjectUrl"] ?? "http://cerezdenyonetim.com")" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm">Çerezden'e Dön</a>
             </header>
             <div class="content">
                 @RenderBody()

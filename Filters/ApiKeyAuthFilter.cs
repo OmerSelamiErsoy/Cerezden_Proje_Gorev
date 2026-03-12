@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using ProjeGorevYonetimi.Services;
 
 namespace ProjeGorevYonetimi.Filters;
 
 /// <summary>
-/// Tüm API isteklerinde apiKey parametresini (query veya header) ApiAuthGuid ile doğrular.
+/// API isteklerinde: oturum açmış kullanıcı (session/cookie) varsa geçer; yoksa apiKey (query/header) ApiAuthGuid ile eşleşmeli.
+/// Böylece tarayıcıdan yapılan istekler apiKey olmadan, harici API çağrıları apiKey ile çalışır.
 /// </summary>
 public class ApiKeyAuthFilter : IAuthorizationFilter
 {
@@ -12,6 +14,13 @@ public class ApiKeyAuthFilter : IAuthorizationFilter
 
     public void OnAuthorization(AuthorizationFilterContext context)
     {
+        var currentUser = context.HttpContext.RequestServices.GetService<ICurrentUserService>();
+        var cerezdenId = currentUser?.GetCurrentCerezdenKullaniciId();
+
+        // Oturum açmış kullanıcı varsa (aynı site üzerinden kullanım) apiKey zorunlu değil
+        if (cerezdenId.HasValue)
+            return;
+
         var config = context.HttpContext.RequestServices.GetService<IConfiguration>();
         var expectedGuid = config?.GetValue<string>("ApiAuthGuid") ?? "";
 
@@ -22,7 +31,7 @@ public class ApiKeyAuthFilter : IAuthorizationFilter
         if (string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(expectedGuid) ||
             !string.Equals(apiKey.Trim(), expectedGuid.Trim(), StringComparison.OrdinalIgnoreCase))
         {
-            context.Result = new JsonResult(new { error = "Yetkisiz erişim. Geçerli apiKey gerekli." })
+            context.Result = new JsonResult(new { error = "Yetkisiz erişim. Oturum açın veya geçerli apiKey gönderin." })
             {
                 StatusCode = 401
             };

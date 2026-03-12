@@ -87,9 +87,9 @@
                 </div>
                 <div class="card-body">
                     <div class="d-flex flex-wrap gap-3 align-items-center" v-if="gorevDurumOzeti.length">
-                        <div v-for="s in gorevDurumOzeti" :key="s.durumAd" class="d-flex align-items-center gap-2 px-3 py-2 rounded bg-light">
-                            <span class="fw-medium">{{ s.durumAd }}</span>
-                            <span class="badge bg-primary rounded-pill">{{ s.adet }}</span>
+                        <div v-for="s in gorevDurumOzeti" :key="s.durumAd" class="durum-ozet-pill">
+                            <span class="durum-ozet-ad">{{ s.durumAd }}</span>
+                            <span class="durum-ozet-adet">{{ s.adet }}</span>
                         </div>
                     </div>
                     <div v-else class="text-muted">Aktif görev yok.</div>
