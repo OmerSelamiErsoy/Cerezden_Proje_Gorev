@@ -1,0 +1,41 @@
+@{
+    Layout = "_AdminLayout";
+    var projeId = ViewData["ProjeId"] as int? ?? 0;
+}
+<div id="proje-edit-app" data-proje-id="@projeId">
+    <div class="card p-4">
+        <form @@submit.prevent="kaydet" v-if="proje">
+            <div class="mb-3"><label class="form-label">Proje Adı *</label><input v-model="proje.ad" class="form-control" required /></div>
+            <div class="mb-3"><label class="form-label">Durum</label><select v-model="proje.projeDurumId" class="form-select"><option v-for="s in durumlar" :key="s.id" :value="s.id">{{ s.ad }}</option></select></div>
+            <div class="mb-3"><label class="form-label">Açıklama</label><textarea v-model="proje.aciklama" class="form-control" rows="2"></textarea></div>
+            <div class="row">
+                <div class="col-md-4 mb-3"><label class="form-label">Başlangıç</label><input v-model="proje.baslangicTarihi" type="date" class="form-control" /></div>
+                <div class="col-md-4 mb-3"><label class="form-label">Planlanan Bitiş</label><input v-model="proje.planlananBitisTarihi" type="date" class="form-control" /></div>
+                <div class="col-md-4 mb-3"><label class="form-label">Bitiş</label><input v-model="proje.bitisTarihi" type="date" class="form-control" /></div>
+            </div>
+            <div class="mb-3"><label class="form-label">Sorumlu</label><select v-model="proje.sorumluKullaniciId" class="form-select"><option :value="null">Seçiniz</option><option v-for="k in kullanicilar" :key="k.id" :value="k.id">{{ k.adSoyad }}</option></select></div>
+            <div class="mb-3"><label class="form-check"><input type="checkbox" v-model="proje.aktifMi" /> Aktif</label></div>
+            <button type="submit" class="btn btn-primary">Kaydet</button>
+            <a href="/Projeler" class="btn btn-secondary ms-2">İptal</a>
+        </form>
+    </div>
+</div>
+@section Scripts {
+<script>
+const { createApp } = Vue;
+const id = document.getElementById('proje-edit-app').dataset.projeId;
+createApp({
+    data() { return { proje: null, durumlar: [], kullanicilar: [] }; },
+    mounted() {
+        axios.get('/api/Projeler/' + id).then(r => { this.proje = r.data; this.proje.baslangicTarihi = this.proje.baslangicTarihi ? this.proje.baslangicTarihi.split('T')[0] : null; this.proje.planlananBitisTarihi = this.proje.planlananBitisTarihi ? this.proje.planlananBitisTarihi.split('T')[0] : null; this.proje.bitisTarihi = this.proje.bitisTarihi ? this.proje.bitisTarihi.split('T')[0] : null; });
+        axios.get('/api/Parametre/durumlar').then(r => { this.durumlar = r.data; });
+        axios.get('/api/Kullanicilar').then(r => { this.kullanicilar = r.data; });
+    },
+    methods: {
+        kaydet() {
+            axios.put('/api/Projeler/' + id, { ad: this.proje.ad, projeDurumId: this.proje.projeDurumId, aciklama: this.proje.aciklama, baslangicTarihi: this.proje.baslangicTarihi || null, planlananBitisTarihi: this.proje.planlananBitisTarihi || null, bitisTarihi: this.proje.bitisTarihi || null, sorumluKullaniciId: this.proje.sorumluKullaniciId, aktifMi: this.proje.aktifMi }).then(() => window.location.href = '/Projeler/Detay/' + id);
+        }
+    }
+}).mount('#proje-edit-app');
+</script>
+}

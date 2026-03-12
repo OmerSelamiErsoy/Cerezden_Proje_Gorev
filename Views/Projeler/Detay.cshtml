@@ -1,0 +1,221 @@
+@{
+    Layout = "_AdminLayout";
+    var projeId = ViewData["ProjeId"] as int? ?? 0;
+}
+<div id="proje-detay-app" data-proje-id="@projeId">
+    <div class="card p-4 mb-4" v-if="proje">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+                <h4 class="mb-1">{{ proje.ad }}</h4>
+                <span class="badge bg-secondary me-2">{{ proje.projeDurumAd }}</span>
+                <span class="text-muted">İlerleme: <strong>{{ proje.progressYuzde }}%</strong></span>
+            </div>
+            <div>
+                <a href="/Projeler" class="btn btn-outline-secondary btn-sm me-2">Listeye Dön</a>
+                <a :href="'/Projeler/Edit/' + proje.id" class="btn btn-outline-primary btn-sm">Düzenle</a>
+            </div>
+        </div>
+        <div class="progress mb-2" style="height:10px"><div class="progress-bar" :style="{width: proje.progressYuzde + '%'}"></div></div>
+        <p v-if="proje.aciklama" class="text-muted mb-0">{{ proje.aciklama }}</p>
+        <div class="mt-2 small text-muted">
+            Başlangıç: {{ formatDate(proje.baslangicTarihi) }} | Planlanan Bitiş: {{ formatDate(proje.planlananBitisTarihi) }} | Sorumlu: {{ proje.sorumluAdSoyad || '-' }}
+        </div>
+    </div>
+
+    <div class="card mb-4" v-if="proje && durumlar.length">
+        <div class="card-body py-3">
+            <div class="small text-muted mb-2">Adımların duruma göre dağılımı</div>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <div v-for="s in durumOzeti" :key="s.id" class="durum-ozet-pill">
+                    <span class="durum-ozet-ad">{{ s.ad }}</span>
+                    <span class="durum-ozet-adet">{{ s.adet }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-outline-primary btn-sm" :disabled="seciliDetayIds.length === 0" @@click="durumGuncelleModalAc()">Durum Güncelle</button>
+                <button class="btn btn-primary btn-sm" @@click="adimModalAc()"><i class="fas fa-plus me-1"></i> Adım Ekle</button>
+            </div>
+            <span v-if="seciliDetayIds.length > 0" class="small text-muted">{{ seciliDetayIds.length }} adım seçili</span>
+        </div>
+        <ul class="list-group list-group-flush">
+            <li v-for="d in proje.detaylar" :key="d.id" class="list-group-item d-flex justify-content-between align-items-center flex-md-row flex-column align-items-stretch gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <input type="checkbox" :value="d.id" v-model="seciliDetayIds" class="form-check-input" />
+                    <span class="badge bg-light text-dark">{{ d.kategoriAd || '-' }}</span>
+                    <strong>{{ d.adimAdi }}</strong>
+                    <span class="badge bg-secondary">{{ d.durumAd }}</span>
+                    <span v-if="d.sorumluAdSoyad" class="small text-muted">({{ d.sorumluAdSoyad }})</span>
+                    <a href="#" @@click.prevent="yorumAc(d)" class="ms-2" title="Yorumlar"><i class="fas fa-comment" :class="{ 'text-primary': d.yorumSayisi > 0 }"></i> <span v-if="d.yorumSayisi">{{ d.yorumSayisi }}</span></a>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-sm btn-outline-secondary" @@click="adimDuzenle(d)">Düzenle</button>
+                </div>
+            </li>
+            <li v-if="!proje.detaylar || proje.detaylar.length === 0" class="list-group-item text-muted">Henüz adım yok. "Adım Ekle" ile ekleyin.</li>
+        </ul>
+    </div>
+
+    <div class="modal fade" id="durumGuncelleModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Toplu Durum Güncelle</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <p class="text-muted small">Seçilen {{ seciliDetayIds.length }} adımın durumunu güncelleyin.</p>
+            <div class="mb-2"><label class="form-label">Yeni Durum</label><select v-model="topluDurumId" class="form-select"><option v-for="s in durumlar" :key="s.id" :value="s.id">{{ s.ad }}</option></select></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button><button type="button" class="btn btn-primary" @@click="topluDurumGuncelle">Seçilen Kayıtları Güncelle</button></div>
+    </div></div></div>
+
+    <div class="modal fade" id="adimModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">{{ adimModalId ? 'Adım Düzenle' : 'Yeni Adım' }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <div class="mb-2"><label class="form-label">Adım Adı</label><input v-model="adimForm.adimAdi" class="form-control" /></div>
+            <div class="mb-2"><label class="form-label">Kategori</label><select v-model="adimForm.kategoriId" class="form-select"><option :value="null">Seçiniz</option><option v-for="k in kategoriler" :key="k.id" :value="k.id">{{ k.ad }}</option></select></div>
+            <div class="mb-2" v-if="durumlar.length"><label class="form-label">Durum</label><select v-model="adimForm.durumId" class="form-select"><option v-for="s in durumlar" :key="s.id" :value="s.id">{{ s.ad }}</option></select></div>
+            <div class="mb-2"><label class="form-label">Sorumlu</label><select v-model="adimForm.sorumluKullaniciId" class="form-select"><option :value="null">Seçiniz</option><option v-for="k in kullanicilar" :key="k.id" :value="k.id">{{ k.adSoyad }}</option></select></div>
+            <div><label class="form-label">Açıklama</label><textarea v-model="adimForm.aciklama" class="form-control" rows="2"></textarea></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button><button type="button" class="btn btn-primary" @@click="adimKaydet">Kaydet</button></div>
+    </div></div></div>
+
+    <div class="modal fade" id="yorumModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Yorumlar - {{ seciliDetay?.adimAdi }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <div v-for="y in yorumlar" :key="y.id" class="border-bottom pb-2 mb-2">
+                <div class="small text-muted">{{ y.insertedByAdSoyad }} - {{ formatDate(y.insertDate) }}</div>
+                <p class="mb-1" v-if="y.yorumMetni">{{ y.yorumMetni }}</p>
+                <div v-if="y.dosyalar && y.dosyalar.length" class="small mt-1">
+                    <a v-for="f in y.dosyalar" :key="f.id" :href="f.dosyaYolu" target="_blank" class="me-2"><i class="fas fa-paperclip me-1"></i>{{ f.dosyaAdi }}</a>
+                </div>
+            </div>
+            <div class="border-top pt-3">
+                <label class="form-label">Yorum</label>
+                <textarea v-model="yeniYorum" class="form-control mb-2" rows="2" placeholder="Yorum yazın..."></textarea>
+                <div class="mb-2">
+                    <label class="form-label">Dosya ekle</label>
+                    <input ref="yorumDosyaInput" type="file" multiple class="form-control form-control-sm" accept="*/*" @@change="yorumDosyaSecildi" />
+                    <div v-if="yorumSecilenDosyaAdlari.length" class="small text-muted mt-1">
+                        Seçilen: <span v-for="(ad, i) in yorumSecilenDosyaAdlari" :key="i" class="me-2">{{ ad }}</span>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-sm" @@click="yorumGonder" :disabled="yorumGonderDisabled"><i class="fas fa-paper-plane me-1"></i> Gönder</button>
+            </div>
+        </div>
+    </div></div></div>
+</div>
+@section Scripts {
+<script>
+const { createApp } = Vue;
+const projeId = document.getElementById('proje-detay-app').dataset.projeId;
+createApp({
+    data() {
+        return {
+            proje: null,
+            durumlar: [],
+            kategoriler: [],
+            kullanicilar: [],
+            seciliDetayIds: [],
+            topluDurumId: null,
+            adimModalId: null,
+            adimForm: { adimAdi: '', kategoriId: null, durumId: null, sorumluKullaniciId: null, aciklama: '' },
+            seciliDetay: null,
+            yorumlar: [],
+            yeniYorum: '',
+            yorumSecilenDosyaAdlari: []
+        };
+    },
+    computed: {
+        yorumGonderDisabled() {
+            var hasText = this.yeniYorum && this.yeniYorum.trim().length > 0;
+            return !hasText && this.yorumSecilenDosyaAdlari.length === 0;
+        },
+        durumOzeti() {
+            if (!this.proje || !this.proje.detaylar || !this.durumlar.length) return [];
+            return this.durumlar.map(s => ({
+                id: s.id,
+                ad: s.ad,
+                adet: this.proje.detaylar.filter(d => d.durumId === s.id).length
+            }));
+        }
+    },
+    mounted() {
+        this.yukle();
+        axios.get('/api/Parametre/durumlar').then(r => { this.durumlar = r.data; });
+        axios.get('/api/Parametre/kategoriler').then(r => { this.kategoriler = r.data; });
+        axios.get('/api/Kullanicilar').then(r => { this.kullanicilar = r.data; });
+    },
+    methods: {
+        yukle() { axios.get('/api/Projeler/' + projeId).then(r => { this.proje = r.data; }); },
+        formatDate(d) { if (!d) return '-'; return new Date(d).toLocaleString('tr-TR'); },
+        adimModalAc() { this.adimModalId = null; this.adimForm = { adimAdi: '', kategoriId: null, durumId: this.durumlar[0]?.id ?? null, sorumluKullaniciId: null, aciklama: '' }; new bootstrap.Modal(document.getElementById('adimModal')).show(); },
+        adimDuzenle(d) { this.adimModalId = d.id; this.adimForm = { adimAdi: d.adimAdi, kategoriId: d.kategoriId, durumId: d.durumId, sorumluKullaniciId: d.sorumluKullaniciId, aciklama: d.aciklama || '' }; new bootstrap.Modal(document.getElementById('adimModal')).show(); },
+        adimKaydet() {
+            if (this.adimModalId) {
+                const det = this.proje.detaylar.find(x => x.id === this.adimModalId);
+                axios.put('/api/projeler/' + projeId + '/ProjeDetay/' + this.adimModalId, { kategoriId: this.adimForm.kategoriId, adimAdi: this.adimForm.adimAdi, durumId: this.adimForm.durumId, sorumluKullaniciId: this.adimForm.sorumluKullaniciId, aciklama: this.adimForm.aciklama || '', sira: det.sira }).then(() => { this.yukle(); bootstrap.Modal.getInstance(document.getElementById('adimModal')).hide(); });
+            } else {
+                axios.post('/api/projeler/' + projeId + '/ProjeDetay', { adimAdi: this.adimForm.adimAdi, kategoriId: this.adimForm.kategoriId, sorumluKullaniciId: this.adimForm.sorumluKullaniciId, aciklama: this.adimForm.aciklama }).then(() => { this.yukle(); bootstrap.Modal.getInstance(document.getElementById('adimModal')).hide(); });
+            }
+        },
+        durumGuncelleModalAc() {
+            if (this.seciliDetayIds.length === 0) return;
+            this.topluDurumId = this.durumlar[0]?.id ?? null;
+            new bootstrap.Modal(document.getElementById('durumGuncelleModal')).show();
+        },
+        topluDurumGuncelle() {
+            axios.put('/api/projeler/' + projeId + '/ProjeDetay/durum-guncelle', { detayIds: this.seciliDetayIds, durumId: this.topluDurumId }).then(() => {
+                this.yukle();
+                this.seciliDetayIds = [];
+                bootstrap.Modal.getInstance(document.getElementById('durumGuncelleModal')).hide();
+            }).catch(err => { alert(err.response?.data?.message || 'Güncellenemedi.'); });
+        },
+        yorumAc(d) {
+            this.seciliDetay = d;
+            this.yeniYorum = '';
+            this.yorumSecilenDosyaAdlari = [];
+            this.$nextTick(() => { var input = this.$refs.yorumDosyaInput; if (input) input.value = ''; });
+            axios.get('/api/projeler/' + projeId + '/detaylar/' + d.id + '/yorumlar').then(r => { this.yorumlar = r.data; });
+            new bootstrap.Modal(document.getElementById('yorumModal')).show();
+        },
+        yorumDosyaSecildi(e) {
+            var files = e.target.files;
+            this.yorumSecilenDosyaAdlari = files && files.length ? Array.from(files).map(f => f.name) : [];
+        },
+        yorumGonder() {
+            if (!this.seciliDetay) return;
+            var hasText = this.yeniYorum && this.yeniYorum.trim().length > 0;
+            var input = this.$refs.yorumDosyaInput;
+            var files = input && input.files ? Array.from(input.files) : [];
+            if (!hasText && files.length === 0) return;
+            var detayId = this.seciliDetay.id;
+            var yorumMetni = (this.yeniYorum && this.yeniYorum.trim()) || '';
+            axios.post('/api/projeler/' + projeId + '/detaylar/' + detayId + '/yorumlar', { yorumMetni: yorumMetni })
+                .then(r => {
+                    var yorumId = r.data.id;
+                    if (files.length === 0) {
+                        this.yorumlarYenile(detayId);
+                        this.yeniYorum = ''; this.yorumSecilenDosyaAdlari = []; if (input) input.value = ''; this.yukle();
+                        return;
+                    }
+                    var uploads = files.map(f => {
+                        var fd = new FormData();
+                        fd.append('file', f);
+                        return axios.post('/api/projeler/' + projeId + '/detaylar/' + detayId + '/yorumlar/upload?yorumId=' + yorumId, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                    });
+                    Promise.all(uploads).then(() => {
+                        this.yorumlarYenile(detayId);
+                        this.yeniYorum = ''; this.yorumSecilenDosyaAdlari = []; if (input) input.value = ''; this.yukle();
+                    }).catch(err => { alert('Dosya yüklenirken hata: ' + (err.response?.data?.message || err.message)); this.yorumlarYenile(detayId); this.yukle(); });
+                })
+                .catch(err => { alert(err.response?.data?.message || 'Yorum eklenemedi.'); });
+        },
+        yorumlarYenile(detayId) {
+            axios.get('/api/projeler/' + projeId + '/detaylar/' + detayId + '/yorumlar').then(r => { this.yorumlar = r.data; });
+        }
+    }
+}).mount('#proje-detay-app');
+</script>
+}

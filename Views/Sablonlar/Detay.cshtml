@@ -1,0 +1,41 @@
+@{
+    Layout = "_AdminLayout";
+    var sablonId = ViewData["SablonId"] as int? ?? 0;
+}
+<div id="sablon-detay-app" data-sablon-id="@sablonId">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="mb-0" v-if="sablon">{{ sablon.ad }}</h5>
+        <a href="/Sablonlar" class="btn btn-outline-secondary btn-sm">Listeye Dön</a>
+    </div>
+    <div class="card mb-4" v-if="sablon">
+        <div class="card-body">
+            <p v-if="sablon.aciklama" class="text-muted mb-0">{{ sablon.aciklama }}</p>
+            <p v-else class="text-muted mb-0 fst-italic">Açıklama yok.</p>
+        </div>
+    </div>
+    <div class="card" v-if="sablon">
+        <div class="card-header">Şablon Adımları</div>
+        <ul class="list-group list-group-flush">
+            <li v-for="(d, i) in (sablon.detaylar || [])" :key="d.id" class="list-group-item d-flex align-items-center gap-2">
+                <span class="text-muted small" style="min-width:1.5rem">{{ i + 1 }}.</span>
+                <span class="badge bg-light text-dark" v-if="d.kategoriAd">{{ d.kategoriAd }}</span>
+                <strong>{{ d.adimAdi }}</strong>
+                <span v-if="d.aciklama" class="small text-muted">{{ d.aciklama }}</span>
+            </li>
+            <li v-if="!sablon.detaylar || sablon.detaylar.length === 0" class="list-group-item text-muted">Adım bulunmuyor.</li>
+        </ul>
+    </div>
+    <div v-if="!sablon && yuklendi" class="alert alert-warning">Şablon bulunamadı.</div>
+</div>
+@section Scripts {
+<script>
+const { createApp } = Vue;
+const sablonId = document.getElementById('sablon-detay-app').dataset.sablonId;
+createApp({
+    data() { return { sablon: null, yuklendi: false }; },
+    mounted() {
+        axios.get('/api/Sablon/' + sablonId).then(r => { this.sablon = r.data; this.yuklendi = true; }).catch(() => { this.yuklendi = true; });
+    }
+}).mount('#sablon-detay-app');
+</script>
+}

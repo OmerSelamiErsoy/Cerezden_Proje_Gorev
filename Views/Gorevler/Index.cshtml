@@ -1,0 +1,67 @@
+@{
+    Layout = "_AdminLayout";
+}
+<div id="gorevler-app">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Görev Grupları</h5>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#grupModal"><i class="fas fa-plus me-1"></i> Yeni Görev Grubu</button>
+    </div>
+    <div class="row g-3" v-if="gruplar.length">
+        <div v-for="g in gruplar" :key="g.id" class="col-md-6 col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="card-title mb-0">{{ g.ad }}</h6>
+                        <span v-if="g.benimGrubum" class="badge bg-primary">Benim grubum</span>
+                    </div>
+                    <p v-if="g.aciklama" class="small text-muted mb-2">{{ g.aciklama }}</p>
+                    <div class="small text-muted mb-2">{{ g.gorevSayisi }} görev</div>
+                    <a :href="'/Gorevler/GrupDetay/' + g.id" class="btn btn-outline-primary btn-sm">Grup detay</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div v-else class="alert alert-info">Henüz görev grubu yok. "Yeni Görev Grubu" ile oluşturun, sonra gruba tıklayıp görev ekleyin.</div>
+
+    <div class="modal fade" id="grupModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title">Yeni Görev Grubu</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="mb-2"><label class="form-label">Grup Adı *</label><input v-model="grupForm.ad" class="form-control" placeholder="Örn: Sprint 1" /></div>
+                    <div class="mb-2"><label class="form-label">Açıklama</label><textarea v-model="grupForm.aciklama" class="form-control" rows="2" placeholder="İsteğe bağlı"></textarea></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button><button type="button" class="btn btn-primary" @@click="grupKaydet">Kaydet</button></div>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+<script>
+const { createApp } = Vue;
+createApp({
+    data() {
+        return {
+            gruplar: [],
+            grupForm: { ad: '', aciklama: '' }
+        };
+    },
+    mounted() {
+        this.yukle();
+    },
+    methods: {
+        yukle() {
+            axios.get('/api/GorevGrubu').then(r => { this.gruplar = r.data; });
+        },
+        grupKaydet() {
+            if (!this.grupForm.ad.trim()) return;
+            axios.post('/api/GorevGrubu', { ad: this.grupForm.ad.trim(), aciklama: this.grupForm.aciklama || null }).then(() => {
+                this.yukle();
+                this.grupForm = { ad: '', aciklama: '' };
+                bootstrap.Modal.getInstance(document.getElementById('grupModal')).hide();
+            });
+        }
+    }
+}).mount('#gorevler-app');
+</script>
+}

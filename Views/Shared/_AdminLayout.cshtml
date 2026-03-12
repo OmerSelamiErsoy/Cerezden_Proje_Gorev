@@ -1,0 +1,78 @@
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Proje & Görev Yönetimi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/@@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+    @await RenderSectionAsync("Head", required: false)
+</head>
+<body>
+    <div class="admin-wrap">
+        <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand"><i class="fas fa-tasks"></i> <span class="sidebar-brand-text">Proje & Görev</span></div>
+            <button type="button" class="sidebar-close d-lg-none" id="sidebarClose" aria-label="Menüyü kapat"><i class="fas fa-times"></i></button>
+            <nav class="sidebar-nav">
+                <a asp-controller="Dashboard" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")"><i class="fas fa-th-large"></i> Dashboard</a>
+                <a asp-controller="Projeler" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Projeler" ? "active" : "")"><i class="fas fa-folder-open"></i> Projeler</a>
+                <a asp-controller="Sablonlar" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Sablonlar" ? "active" : "")"><i class="fas fa-copy"></i> Proje Şablonları</a>
+                <a asp-controller="Gorevler" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Gorevler" ? "active" : "")"><i class="fas fa-list-check"></i> Görevler</a>
+                <a asp-controller="Parametreler" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Parametreler" ? "active" : "")"><i class="fas fa-sliders-h"></i> Parametreler</a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="@(Configuration["redirectMainProjectUrl"] ?? "http://cerezdenyonetim.com")" target="_blank" rel="noopener noreferrer" class="sidebar-logo-link">
+                    <img src="~/images/cerezden-logo.png" alt="Çerezden Kuruyemiş" class="sidebar-logo" />
+                </a>
+            </div>
+        </aside>
+        <main class="main">
+            <header class="topbar d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <button type="button" class="topbar-menu-btn d-lg-none" id="topbarMenuBtn" aria-label="Menüyü aç"><i class="fas fa-bars"></i></button>
+                    <h1 class="topbar-title mb-0">@ViewData["Title"]</h1>
+                </div>
+                <a href="@(Configuration["redirectMainProjectUrl"] ?? "http://cerezdenyonetim.com")" target="_blank" rel="noopener noreferrer" class="btn btn-danger btn-sm rounded-3 px-3">Çerezden'e Dön</a>
+            </header>
+            <div class="content">
+                @RenderBody()
+            </div>
+        </main>
+    </div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+        (function() {
+            var sidebar = document.getElementById('sidebar');
+            var overlay = document.getElementById('sidebarOverlay');
+            var menuBtn = document.getElementById('topbarMenuBtn');
+            var closeBtn = document.getElementById('sidebarClose');
+            function openSidebar() {
+                document.body.classList.add('sidebar-open');
+                overlay.setAttribute('aria-hidden', 'false');
+            }
+            function closeSidebar() {
+                document.body.classList.remove('sidebar-open');
+                overlay.setAttribute('aria-hidden', 'true');
+            }
+            if (menuBtn) menuBtn.addEventListener('click', openSidebar);
+            if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+            if (overlay) overlay.addEventListener('click', closeSidebar);
+            document.querySelectorAll('.sidebar-nav a').forEach(function(a) {
+                a.addEventListener('click', function() {
+                    if (window.innerWidth < 992) closeSidebar();
+                });
+            });
+        })();
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
