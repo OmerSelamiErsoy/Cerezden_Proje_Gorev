@@ -13,12 +13,14 @@ public class GorevlerController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
     private readonly ICurrentUserService _currentUser;
+    private readonly IYetkiService _yetki;
     private readonly IWebHostEnvironment _env;
 
-    public GorevlerController(ApplicationDbContext db, ICurrentUserService currentUser, IWebHostEnvironment env)
+    public GorevlerController(ApplicationDbContext db, ICurrentUserService currentUser, IYetkiService yetki, IWebHostEnvironment env)
     {
         _db = db;
         _currentUser = currentUser;
+        _yetki = yetki;
         _env = env;
     }
 
@@ -62,8 +64,11 @@ public class GorevlerController : ControllerBase
             DurumAd = g.Durum?.Ad,
             g.Renk,
             g.OlusturmaTarihi,
+            g.OlusturanKullaniciId,
             OlusturanAdSoyad = g.OlusturanKullanici?.AdSoyad,
             Atananlar = g.Atamalar?.Select(a => a.Kullanici?.AdSoyad).ToList(),
+            AtananKullaniciIds = g.Atamalar?.Select(a => a.KullaniciId).ToList(),
+            BanaAtanmis = g.Atamalar?.Any(a => a.KullaniciId == userId) ?? false,
             YorumSayisi = g.Yorumlar?.Count ?? 0
         };
 
@@ -75,7 +80,8 @@ public class GorevlerController : ControllerBase
         {
             Durumlar = columns.Select(c => new KanbanKolonDto { Id = c.Id, Ad = c.Ad }).ToList(),
             Kartlar = durumlar.Select(d => new { d.Id, Kartlar = aktifByDurum.GetValueOrDefault(d.Id, new List<object>()) }).ToDictionary(x => x.Id, x => x.Kartlar),
-            TamamlananIptalSon50 = tamamlananIptalList
+            TamamlananIptalSon50 = tamamlananIptalList,
+            Me = new KanbanMeDto { KullaniciId = userId, GenelYetkiliMi = _yetki.GenelYetkiliMi() }
         });
     }
 
@@ -107,6 +113,53 @@ public class GorevlerController : ControllerBase
             })
             .ToListAsync(ct);
         return Ok(list);
+    }
+
+    /// <summary>
+    /// Özet: İşlem Bekliyor, Beklemede, İşleme Alındı durumlarındaki görev adetleri (sadece benim oluşturduğum veya bana atananlar).
+    /// </summary>
+    [HttpGet("durum-ozet")]
+    public async Task<ActionResult<List<GorevDurumOzetDto>>> DurumOzet(CancellationToken ct)
+    {
+        var userId = _currentUser.GetCurrentUserId();
+
+        var gorevIds = await _db.Gorevler.Where(g => g.OlusturanKullaniciId == userId).Select(g => g.Id).ToListAsync(ct);
+        var atananIds = await _db.GorevAtamalar.Where(a => a.KullaniciId == userId).Select(a => a.GorevId).ToListAsync(ct);
+        var tumIds = gorevIds.Union(atananIds).Distinct().ToList();
+
+        if (!tumIds.Any())
+        {
+            return Ok(new List<GorevDurumOzetDto>());
+        }
+
+        var hedefDurumAdlari = new[] { "İşlem Bekliyor", "Beklemede", "İşleme Alındı" };
+        var durumlar = await _db.Durumlar
+            .Where(d => hedefDurumAdlari.Contains(d.Ad))
+            .Select(d => new { d.Id, d.Ad })
+            .ToListAsync(ct);
+
+        var durumIdler = durumlar.Select(d => d.Id).ToList();
+        if (!durumIdler.Any())
+        {
+            return Ok(new List<GorevDurumOzetDto>());
+        }
+
+        var sayilar = await _db.Gorevler
+            .Where(g => tumIds.Contains(g.Id) && durumIdler.Contains(g.DurumId))
+            .GroupBy(g => g.DurumId)
+            .Select(g => new { DurumId = g.Key, Sayi = g.Count() })
+            .ToListAsync(ct);
+
+        var sonuc = durumlar
+            .Select(d => new GorevDurumOzetDto
+            {
+                DurumAd = d.Ad,
+                Adet = sayilar.FirstOrDefault(x => x.DurumId == d.Id)?.Sayi ?? 0
+            })
+            .OrderBy(x => Array.IndexOf(hedefDurumAdlari, x.DurumAd))
+            .ToList();
+
+        return Ok(sonuc);
     }
 
     [HttpPost]
@@ -141,37 +194,42 @@ public class GorevlerController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] GorevUpdateDto dto, CancellationToken ct)
     {
-        var gorev = await _db.Gorevler.FindAsync(new object[] { id }, ct);
+        var gorev = await _db.Gorevler.Include(g => g.Atamalar).FirstOrDefaultAsync(g => g.Id == id, ct);
         if (gorev == null) return NotFound();
         var eskiDurumId = gorev.DurumId;
         gorev.Ad = dto.Ad;
         gorev.Aciklama = dto.Aciklama;
         gorev.DurumId = dto.DurumId;
         gorev.Renk = dto.Renk;
+        gorev.Turu = dto.Turu;
 
-        await _db.SaveChangesAsync(ct);
-
-        if (eskiDurumId != dto.DurumId)
+        // Tür / atamalar: mevcut atamaları kaldır, yenilerini ekle
+        if (gorev.Atamalar != null)
         {
-            try
-            {
-                var userId = _currentUser.GetCurrentUserId();
-                _db.GorevDurumLoglar.Add(new GorevDurumLog
-                {
-                    GorevId = id,
-                    EskiDurumId = eskiDurumId,
-                    YeniDurumId = dto.DurumId,
-                    DegistirenKullaniciId = userId,
-                    DegistirmeTarihi = DateTime.UtcNow
-                });
-                await _db.SaveChangesAsync(ct);
-            }
-            catch
-            {
-                // Log tablosu yoksa veya log yazılamazsa görev güncellemesi yine başarılı sayılır
-            }
+            foreach (var a in gorev.Atamalar.ToList())
+                _db.GorevAtamalar.Remove(a);
+        }
+        if (dto.Turu == 1 && dto.AtananKullaniciIds != null)
+        {
+            foreach (var kid in dto.AtananKullaniciIds)
+                _db.GorevAtamalar.Add(new GorevAtama { GorevId = id, KullaniciId = kid });
         }
 
+        // Durum değiştiyse log kaydını aynı transaction içinde ekle (tek SaveChanges ile yazılsın)
+        if (eskiDurumId != dto.DurumId)
+        {
+            var userId = _currentUser.GetCurrentUserId();
+            _db.GorevDurumLoglar.Add(new GorevDurumLog
+            {
+                GorevId = id,
+                EskiDurumId = eskiDurumId,
+                YeniDurumId = dto.DurumId,
+                DegistirenKullaniciId = userId,
+                DegistirmeTarihi = DateTime.UtcNow
+            });
+        }
+
+        await _db.SaveChangesAsync(ct);
         return Ok();
     }
 
@@ -218,17 +276,20 @@ public class GorevlerController : ControllerBase
     [HttpGet("{gorevId:int}/yorumlar")]
     public async Task<ActionResult<List<GorevYorumDto>>> Yorumlar(int gorevId, CancellationToken ct)
     {
-        var list = await _db.GorevYorumlar
-            .Where(y => y.GorevId == gorevId)
-            .OrderByDescending(y => y.InsertDate)
-            .Include(y => y.Dosyalar)
-            .Select(y => new GorevYorumDto
-            {
-                Id = y.Id,
-                YorumMetni = y.YorumMetni,
-                InsertDate = y.InsertDate,
-                Dosyalar = y.Dosyalar!.Select(f => new GorevDosyaDto { Id = f.Id, DosyaAdi = f.DosyaAdi, DosyaYolu = f.DosyaYolu }).ToList()
-            })
+        // Yorumları yazan kullanıcı bilgisiyle birlikte getir
+        var list = await (from y in _db.GorevYorumlar
+                          where y.GorevId == gorevId
+                          orderby y.InsertDate descending
+                          join k in _db.Kullanicilar.IgnoreQueryFilters() on y.InsertedByUserId equals k.Id into gj
+                          from k in gj.DefaultIfEmpty()
+                          select new GorevYorumDto
+                          {
+                              Id = y.Id,
+                              YorumMetni = y.YorumMetni,
+                              InsertDate = y.InsertDate,
+                              YazanAdSoyad = k != null ? k.AdSoyad : null,
+                              Dosyalar = y.Dosyalar!.Select(f => new GorevDosyaDto { Id = f.Id, DosyaAdi = f.DosyaAdi, DosyaYolu = f.DosyaYolu }).ToList()
+                          })
             .ToListAsync(ct);
         return Ok(list);
     }
@@ -267,6 +328,12 @@ public class KanbanViewModel
     public List<KanbanKolonDto> Durumlar { get; set; } = new();
     public Dictionary<int, List<object>> Kartlar { get; set; } = new();
     public List<object> TamamlananIptalSon50 { get; set; } = new();
+    public KanbanMeDto? Me { get; set; }
+}
+public class KanbanMeDto
+{
+    public int KullaniciId { get; set; }
+    public bool GenelYetkiliMi { get; set; }
 }
 public class KanbanKolonDto { public int Id { get; set; } public string Ad { get; set; } = ""; }
 public class GorevDto
@@ -282,6 +349,7 @@ public class GorevDto
     public string? OlusturanAdSoyad { get; set; }
     public List<string> Atananlar { get; set; } = new();
 }
+
 public class GorevCreateDto
 {
     public int? GorevGrubuId { get; set; }
@@ -295,6 +363,8 @@ public class GorevUpdateDto
     public string Ad { get; set; } = "";
     public string? Aciklama { get; set; }
     public int DurumId { get; set; }
+    public int Turu { get; set; }
+    public List<int>? AtananKullaniciIds { get; set; }
     public string? Renk { get; set; }
 }
 public class GorevDurumLogDto
@@ -310,6 +380,7 @@ public class GorevYorumDto
     public int Id { get; set; }
     public string YorumMetni { get; set; } = "";
     public DateTime? InsertDate { get; set; }
+    public string? YazanAdSoyad { get; set; }
     public List<GorevDosyaDto> Dosyalar { get; set; } = new();
 }
 

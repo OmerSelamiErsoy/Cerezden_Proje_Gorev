@@ -1,7 +1,40 @@
 @{
     Layout = "_AdminLayout";
 }
-<div id="gorevler-app">
+<div id="gorevler-app" v-cloak>
+    <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
+        <div class="w-100 text-center">
+            <div class="small text-muted mb-2">Yükleniyor...</div>
+            <div class="progress" style="max-width:260px;margin:0 auto;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div>
+            </div>
+        </div>
+    </div>
+    <div class="v-cloak-hidden">
+    <h6 class="mb-3 text-muted fw-semibold">Toplam aktif görev adetleri</h6>
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-card-icon warning"><i class="fas fa-clock"></i></div>
+                <div class="stat-card-label small text-muted">İşlem Bekliyor</div>
+                <div class="stat-card-value h4 mb-0">{{ islemBekliyorSayi }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-card-icon secondary"><i class="fas fa-pause-circle"></i></div>
+                <div class="stat-card-label small text-muted">Beklemede</div>
+                <div class="stat-card-value h4 mb-0">{{ beklemedeSayi }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-card-icon primary"><i class="fas fa-play-circle"></i></div>
+                <div class="stat-card-label small text-muted">İşleme Alındı</div>
+                <div class="stat-card-value h4 mb-0">{{ islemeAlindiSayi }}</div>
+            </div>
+        </div>
+    </div>
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0">Görev Grupları</h5>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#grupModal"><i class="fas fa-plus me-1"></i> Yeni Görev Grubu</button>
@@ -35,6 +68,7 @@
             </div>
         </div>
     </div>
+    </div>
 </div>
 @section Scripts {
 <script>
@@ -43,15 +77,36 @@ createApp({
     data() {
         return {
             gruplar: [],
-            grupForm: { ad: '', aciklama: '' }
+            grupForm: { ad: '', aciklama: '' },
+            durumOzet: []
         };
     },
     mounted() {
         this.yukle();
+        this.yukleDurumOzet();
+    },
+    computed: {
+        islemBekliyorSayi() {
+            const kayit = this.durumOzet.find(x => x.durumAd === 'İşlem Bekliyor');
+            return kayit ? kayit.adet : 0;
+        },
+        beklemedeSayi() {
+            const kayit = this.durumOzet.find(x => x.durumAd === 'Beklemede');
+            return kayit ? kayit.adet : 0;
+        },
+        islemeAlindiSayi() {
+            const kayit = this.durumOzet.find(x => x.durumAd === 'İşleme Alındı');
+            return kayit ? kayit.adet : 0;
+        }
     },
     methods: {
         yukle() {
             axios.get('/api/GorevGrubu').then(r => { this.gruplar = r.data; });
+        },
+        yukleDurumOzet() {
+            axios.get('/api/Gorevler/durum-ozet').then(r => {
+                this.durumOzet = Array.isArray(r.data) ? r.data : [];
+            }).catch(e => console.error(e));
         },
         grupKaydet() {
             if (!this.grupForm.ad.trim()) return;

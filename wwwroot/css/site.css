@@ -1,3 +1,15 @@
+[v-cloak] .v-cloak-hidden {
+    display: none !important;
+}
+
+[v-cloak] .v-cloak-loading {
+    display: flex !important;
+}
+
+.v-cloak-loading {
+    display: none !important;
+}
+
 /* Public layout - Home, Privacy */
 :root {
     --public-primary: #0d9488;

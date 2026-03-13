@@ -29,6 +29,18 @@
     box-sizing: border-box;
 }
 
+[v-cloak] .v-cloak-hidden {
+    display: none !important;
+}
+
+[v-cloak] .v-cloak-loading {
+    display: flex !important;
+}
+
+.v-cloak-loading {
+    display: none !important;
+}
+
 body {
     margin: 0;
     font-family: 'DM Sans', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -373,6 +385,12 @@ body {
     background: rgba(34, 197, 94, 0.12);
     color: #16a34a;
     box-shadow: 0 4px 12px -2px rgba(22, 163, 74, 0.2);
+}
+
+.stat-card-icon.secondary {
+    background: rgba(100, 116, 139, 0.12);
+    color: #64748b;
+    box-shadow: 0 4px 12px -2px rgba(100, 116, 139, 0.15);
 }
 
 .stat-card-label {

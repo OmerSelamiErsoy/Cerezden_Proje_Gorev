@@ -1,12 +1,58 @@
 @{
     Layout = "_AdminLayout";
     var grupId = ViewData["GrupId"] as int?;
+    var grupAd = ViewData["GrupAd"] as string ?? "Görev Grubu";
 }
-<div id="gorevler-app" data-grup-id="@(grupId?.ToString() ?? "")">
+<style>
+    .atama-link { cursor: pointer; text-decoration: underline; }
+    .atama-link:hover { opacity: 0.85; }
+    .tamamlanan-iptal-card .tamamlanan-iptal-item {
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+        background: #fff;
+        transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    }
+    .tamamlanan-iptal-card .tamamlanan-iptal-item:hover {
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+        border-color: #cbd5e1;
+    }
+    .tamamlanan-iptal-card .tamamlanan-item {
+        border-left: 4px solid #16a34a;
+    }
+    .tamamlanan-iptal-card .iptal-item {
+        border-left: 4px solid #dc2626;
+    }
+    .yorum-item:last-child { border-bottom: none !important; }
+    .yorum-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        background: #0d9488;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 0.9rem;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+</style>
+<div id="gorevler-page">
+<div id="gorevler-app" class="gorevler-app" data-grup-id="@(grupId?.ToString() ?? "")" v-cloak>
+    <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
+        <div class="w-100 text-center">
+            <div class="small text-muted mb-2">Yükleniyor...</div>
+            <div class="progress" style="max-width:260px;margin:0 auto;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div>
+            </div>
+        </div>
+    </div>
+    <div class="v-cloak-hidden">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <a href="/Gorevler" class="btn btn-outline-secondary btn-sm me-2"><i class="fas fa-arrow-left"></i> Gruplar</a>
-            <span class="fw-medium">Grup görevleri</span>
+            <span class="fw-medium">Grup görevleri - @grupAd</span>
         </div>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#gorevModal" @@click="yeniGorev()"><i class="fas fa-plus me-1"></i> Yeni Görev</button>
     </div>
@@ -19,10 +65,18 @@
                         <div class="card-body p-2">
                             <div class="d-flex justify-content-between align-items-start">
                                 <strong class="small">{{ kart.ad }}</strong>
-                                <a href="#" @@click.prevent="yorumAc(kart)" class="text-decoration-none" title="Yorumlar"><i class="fas fa-comment" :class="{ 'text-primary': kart.yorumSayisi > 0 }"></i><span v-if="kart.yorumSayisi" class="small"> {{ kart.yorumSayisi }}</span></a>
+                                <a href="#" @@click.prevent="yorumAc(kart)" class="text-decoration-none small" title="Yorumlar"><i class="fas fa-comment" :class="(kart.yorumSayisi || 0) > 0 ? 'text-danger' : 'text-success'"></i><span v-if="(kart.yorumSayisi || 0) > 0"> - Mesaj ({{ kart.yorumSayisi }})</span><span v-else> - mesaj yaz</span></a>
                             </div>
                             <p v-if="kart.aciklama" class="small text-muted mb-1 truncate">{{ kart.aciklama }}</p>
-                            <div class="small text-muted">{{ kart.olusturanAdSoyad }} · {{ formatDate(kart.olusturmaTarihi) }}</div>
+                            <div class="small text-muted">Oluşturan: {{ kart.olusturanAdSoyad }} - {{ formatDate(kart.olusturmaTarihi) }}</div>
+                            <div class="small text-muted">
+                                <span v-if="kart.turu === 0">Atama: Kendine atanmış</span>
+                                <template v-else-if="kart.turu === 1">
+                                    <span v-if="me && me.genelYetkiliMi" class="atama-link" @@click.prevent="atananlarAc(kart)" title="Atanan kişiler">Kişilere atanmış: ({{ (kart.atananlar || []).length }})</span>
+                                    <span v-else-if="kart.olusturanKullaniciId !== me?.kullaniciId">Kişilere atanmış: Bana Atanmış</span>
+                                    <span v-else class="atama-link" @@click.prevent="atananlarAc(kart)" title="Atanan kişiler">Kişilere atanmış: ({{ (kart.atananlar || []).length }})</span>
+                                </template>
+                            </div>
                             <div class="mt-2">
                                 <select v-model="kart.durumId" @@change="durumGuncelle(kart)" class="form-select form-select-sm">
                                     <option v-for="s in kanban.durumlar" :key="s.id" :value="s.id">{{ s.ad }}</option>
@@ -57,19 +111,31 @@
             </div>
         </div>
     </div>
-    <div class="card mt-4" v-if="tamamlananlar.length || iptalEdilenler.length">
+    <div class="card mt-4 tamamlanan-iptal-card" v-if="tamamlananlar.length || iptalEdilenler.length">
         <div class="card-header">Tamamlanan / İptal (Son 50)</div>
         <div class="card-body">
             <div v-if="tamamlananlar.length" class="mb-4">
-                <h6 class="text-success mb-2">Tamamlanan</h6>
-                <div class="row g-2">
-                    <div v-for="k in tamamlananlar" :key="k.id" class="col-12 col-md-6 col-lg-4">
-                        <div class="card border-0 bg-light">
-                            <div class="card-body py-2 d-flex justify-content-between align-items-center flex-wrap gap-1">
-                                <span class="small fw-medium text-truncate me-2">{{ k.ad }}</span>
-                                <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                                    <span class="small text-muted">{{ k.olusturanAdSoyad }} · {{ formatDate(k.olusturmaTarihi) }}</span>
-                                    <button class="btn btn-sm btn-outline-secondary" @@click="logAc(k)" title="Log">Log</button>
+                <h6 class="text-success mb-3"><i class="fas fa-check-circle me-1"></i> Tamamlanan</h6>
+                <div class="row g-3">
+                    <div v-for="k in tamamlananlar" :key="k.id" class="col-12 col-md-6 col-xl-4">
+                        <div class="card tamamlanan-iptal-item tamamlanan-item">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <div class="min-w-0 flex-grow-1">
+                                        <div class="fw-medium text-truncate mb-1">{{ k.ad }}</div>
+                                        <div class="small text-muted mb-2">Oluşturan: {{ k.olusturanAdSoyad }} - {{ formatDate(k.olusturmaTarihi) }}</div>
+                                        <div class="d-flex align-items-center flex-wrap gap-2">
+                                            <a href="#" class="text-decoration-none small" @@click.prevent="yorumAc(k)"><i class="fas fa-comment" :class="(k.yorumSayisi || 0) > 0 ? 'text-danger' : 'text-success'"></i><span v-if="(k.yorumSayisi || 0) > 0"> - Mesaj ({{ k.yorumSayisi }})</span><span v-else> - mesaj yaz</span></a>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary py-0" @@click="logAc(k)">Log</button>
+                                        </div>
+                                    </div>
+                                    <div class="dropdown flex-shrink-0">
+                                        <a href="#" class="btn btn-sm btn-light border rounded-circle p-1" data-bs-toggle="dropdown" title="İşlemler" @@click.prevent><i class="fas fa-cog text-secondary"></i></a>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="#" @@click.prevent="gorevDuzenle(k)"><i class="fas fa-edit me-1"></i> Güncelle</a></li>
+                                            <li><a class="dropdown-item text-danger" href="#" @@click.prevent="gorevSil(k)"><i class="fas fa-trash me-1"></i> Sil</a></li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -77,15 +143,27 @@
                 </div>
             </div>
             <div v-if="iptalEdilenler.length">
-                <h6 class="text-danger mb-2">İptal Edilenler</h6>
-                <div class="row g-2">
-                    <div v-for="k in iptalEdilenler" :key="k.id" class="col-12 col-md-6 col-lg-4">
-                        <div class="card border-0 bg-light">
-                            <div class="card-body py-2 d-flex justify-content-between align-items-center flex-wrap gap-1">
-                                <span class="small fw-medium text-truncate me-2">{{ k.ad }}</span>
-                                <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                                    <span class="small text-muted">{{ k.olusturanAdSoyad }} · {{ formatDate(k.olusturmaTarihi) }}</span>
-                                    <button class="btn btn-sm btn-outline-secondary" @@click="logAc(k)" title="Log">Log</button>
+                <h6 class="text-danger mb-3"><i class="fas fa-times-circle me-1"></i> İptal Edilenler</h6>
+                <div class="row g-3">
+                    <div v-for="k in iptalEdilenler" :key="k.id" class="col-12 col-md-6 col-xl-4">
+                        <div class="card tamamlanan-iptal-item iptal-item">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <div class="min-w-0 flex-grow-1">
+                                        <div class="fw-medium text-truncate mb-1">{{ k.ad }}</div>
+                                        <div class="small text-muted mb-2">Oluşturan: {{ k.olusturanAdSoyad }} - {{ formatDate(k.olusturmaTarihi) }}</div>
+                                        <div class="d-flex align-items-center flex-wrap gap-2">
+                                            <a href="#" class="text-decoration-none small" @@click.prevent="yorumAc(k)"><i class="fas fa-comment" :class="(k.yorumSayisi || 0) > 0 ? 'text-danger' : 'text-success'"></i><span v-if="(k.yorumSayisi || 0) > 0"> - Mesaj ({{ k.yorumSayisi }})</span><span v-else> - mesaj yaz</span></a>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary py-0" @@click="logAc(k)">Log</button>
+                                        </div>
+                                    </div>
+                                    <div class="dropdown flex-shrink-0">
+                                        <a href="#" class="btn btn-sm btn-light border rounded-circle p-1" data-bs-toggle="dropdown" title="İşlemler" @@click.prevent><i class="fas fa-cog text-secondary"></i></a>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="#" @@click.prevent="gorevDuzenle(k)"><i class="fas fa-edit me-1"></i> Güncelle</a></li>
+                                            <li><a class="dropdown-item text-danger" href="#" @@click.prevent="gorevSil(k)"><i class="fas fa-trash me-1"></i> Sil</a></li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -94,6 +172,8 @@
             </div>
         </div>
     </div>
+    </div>
+</div>
 
     <div class="modal fade" id="atananlarModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
         <div class="modal-header"><h5 class="modal-title">Atanan kişiler - {{ atananlarGorevAd }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
@@ -133,6 +213,7 @@
             <div class="modal-body">
                 <div class="mb-2"><label class="form-label">Görev Adı *</label><input v-model="gorevForm.ad" class="form-control" /></div>
                 <div class="mb-2"><label class="form-label">Açıklama</label><textarea v-model="gorevForm.aciklama" class="form-control" rows="2"></textarea></div>
+                <div class="mb-2" v-if="gorevForm.id"><label class="form-label">Durum</label><select v-model="gorevForm.durumId" class="form-select"><option v-for="d in kanban.durumlar" :key="d.id" :value="d.id">{{ d.ad }}</option></select></div>
                 <div class="mb-2"><label class="form-label">Tür</label><select v-model="gorevForm.turu" class="form-select"><option :value="0">Kendime</option><option :value="1">Kişilere</option></select></div>
                 <div class="mb-2" v-if="gorevForm.turu === 1"><label class="form-label">Atanacak Kişiler</label><select v-model="gorevForm.atananKullaniciIds" multiple class="form-select" style="height:100px"><option v-for="k in kullanicilar" :key="k.id" :value="k.id">{{ k.adSoyad }}</option></select></div>
             </div>
@@ -143,11 +224,33 @@
     <div class="modal fade" id="yorumModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
         <div class="modal-header"><h5 class="modal-title">Yorumlar - {{ seciliGorev?.ad }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
-            <div v-for="y in gorevYorumlar" :key="y.id" class="border-bottom pb-2 mb-2"><div class="small text-muted">{{ formatDate(y.insertDate) }}</div><p class="mb-1">{{ y.yorumMetni }}</p><div v-if="y.dosyalar && y.dosyalar.length" class="small"><a v-for="f in y.dosyalar" :key="f.id" :href="f.dosyaYolu" target="_blank" class="me-2">{{ f.dosyaAdi }}</a></div></div>
-            <textarea v-model="yeniYorum" class="form-control mb-2" rows="2" placeholder="Yorum..."></textarea><button class="btn btn-primary btn-sm" @@click="yorumGonder">Gönder</button>
+            <div v-if="!gorevYorumlar.length" class="text-muted small mb-3">Henüz yorum yok. İlk yorumu siz yazın.</div>
+            <div v-for="y in gorevYorumlar" :key="y.id" class="yorum-item d-flex pb-3 mb-3 border-bottom">
+                <div class="yorum-avatar me-3">
+                    <span>{{ (y.yazanAdSoyad || '?').substring(0,1).toUpperCase() }}</span>
+                </div>
+                <div class="flex-grow-1 min-w-0">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <div class="fw-semibold small text-truncate">{{ y.yazanAdSoyad || 'Bilinmeyen kullanıcı' }}</div>
+                        <div class="small text-muted ms-2">{{ formatDate(y.insertDate) }}</div>
+                    </div>
+                    <p class="mb-1 small">{{ y.yorumMetni }}</p>
+                    <div v-if="y.dosyalar && y.dosyalar.length" class="small mt-1">
+                        <a v-for="f in y.dosyalar" :key="f.id" :href="f.dosyaYolu" target="_blank" class="me-2">{{ f.dosyaAdi }}</a>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-2">
+                <label class="form-label small text-muted">Yeni yorum</label>
+                <textarea v-model="yeniYorum" class="form-control mb-2" rows="2" placeholder="Yorum yazın..."></textarea>
+                <div class="d-flex justify-content-end">
+                    <button class="btn btn-primary btn-sm" @@click="yorumGonder">Gönder</button>
+                </div>
+            </div>
         </div>
     </div></div></div>
 
+</div>
 </div>
 @section Scripts {
 <script>
@@ -158,9 +261,10 @@ createApp({
     data() {
         return {
             grupId,
-            kanban: { durumlar: [], kartlar: {}, tamamlananIptalSon50: [] },
+            kanban: { durumlar: [], kartlar: {}, tamamlananIptalSon50: [], me: null },
+            me: null,
             kullanicilar: [],
-            gorevForm: { id: null, ad: '', aciklama: '', turu: 0, atananKullaniciIds: [], gorevGrubuId: grupId },
+            gorevForm: { id: null, ad: '', aciklama: '', durumId: null, turu: 0, atananKullaniciIds: [], gorevGrubuId: grupId },
             duzenlenenKart: null,
             seciliGorev: null,
             gorevYorumlar: [],
@@ -186,16 +290,25 @@ createApp({
     methods: {
         yukle() {
             const url = grupId != null ? '/api/Gorevler/kanban?grupId=' + grupId : '/api/Gorevler/kanban';
-            axios.get(url).then(r => { this.kanban = r.data; });
+            axios.get(url).then(r => { this.kanban = r.data; this.me = r.data.me || null; });
         },
         formatDate(d) { if (!d) return '-'; return new Date(d).toLocaleString('tr-TR'); },
-        yeniGorev() { this.gorevForm = { id: null, ad: '', aciklama: '', turu: 0, atananKullaniciIds: [], gorevGrubuId: this.grupId }; },
+        yeniGorev() { this.gorevForm = { id: null, ad: '', aciklama: '', durumId: null, turu: 0, atananKullaniciIds: [], gorevGrubuId: this.grupId }; },
         gorevKaydet() {
             if (!this.gorevForm.ad.trim()) return;
             if (this.gorevForm.id) {
                 const k = this.duzenlenenKart;
                 if (!k) return;
-                axios.put('/api/Gorevler/' + this.gorevForm.id, { ad: this.gorevForm.ad, aciklama: this.gorevForm.aciklama || '', durumId: k.durumId, renk: k.renk || null }).then(() => { this.yukle(); this.duzenlenenKart = null; bootstrap.Modal.getInstance(document.getElementById('gorevModal')).hide(); });
+                const durumId = this.gorevForm.durumId != null ? this.gorevForm.durumId : k.durumId;
+                const payload = {
+                    ad: this.gorevForm.ad,
+                    aciklama: this.gorevForm.aciklama || '',
+                    durumId: durumId,
+                    turu: this.gorevForm.turu,
+                    atananKullaniciIds: this.gorevForm.turu === 1 ? (this.gorevForm.atananKullaniciIds || []) : null,
+                    renk: k.renk || null
+                };
+                axios.put('/api/Gorevler/' + this.gorevForm.id, payload).then(() => { this.yukle(); this.duzenlenenKart = null; bootstrap.Modal.getInstance(document.getElementById('gorevModal')).hide(); });
             } else {
                 const payload = { ad: this.gorevForm.ad, aciklama: this.gorevForm.aciklama, turu: this.gorevForm.turu, atananKullaniciIds: this.gorevForm.turu === 1 ? this.gorevForm.atananKullaniciIds : null, gorevGrubuId: this.grupId };
                 axios.post('/api/Gorevler', payload).then(() => { this.yukle(); bootstrap.Modal.getInstance(document.getElementById('gorevModal')).hide(); });
@@ -203,13 +316,33 @@ createApp({
         },
         durumGuncelle(kart) { axios.put('/api/Gorevler/' + kart.id, { ad: kart.ad, aciklama: kart.aciklama || '', durumId: kart.durumId, renk: kart.renk || null }).then(() => this.yukle()); },
         renkSecildi(kart, c) { kart.renk = c; axios.put('/api/Gorevler/' + kart.id, { ad: kart.ad, aciklama: kart.aciklama || '', durumId: kart.durumId, renk: c }).then(() => this.yukle()); },
-        gorevDuzenle(kart) { this.duzenlenenKart = kart; this.gorevForm = { id: kart.id, ad: kart.ad, aciklama: kart.aciklama || '', turu: kart.turu, atananKullaniciIds: [], gorevGrubuId: this.grupId }; new bootstrap.Modal(document.getElementById('gorevModal')).show(); },
+        gorevDuzenle(kart) {
+            this.duzenlenenKart = kart;
+            this.gorevForm = {
+                id: kart.id,
+                ad: kart.ad,
+                aciklama: kart.aciklama || '',
+                durumId: kart.durumId,
+                turu: kart.turu ?? 0,
+                atananKullaniciIds: Array.isArray(kart.atananKullaniciIds) ? [...kart.atananKullaniciIds] : [],
+                gorevGrubuId: this.grupId
+            };
+            new bootstrap.Modal(document.getElementById('gorevModal')).show();
+        },
         gorevSil(kart) { if (!confirm('Bu görevi silmek istediğinize emin misiniz?')) return; axios.delete('/api/Gorevler/' + kart.id).then(() => this.yukle()); },
         atananlarAc(kart) { this.atananlarGorevAd = kart.ad; this.atananlarTuru = kart.turu ?? 0; this.atananlarListesi = kart.atananlar && Array.isArray(kart.atananlar) ? kart.atananlar.filter(Boolean) : []; new bootstrap.Modal(document.getElementById('atananlarModal')).show(); },
         logAc(kart) { this.logGorevAd = kart.ad; this.durumLog = []; axios.get('/api/Gorevler/' + kart.id + '/durum-log').then(r => { this.durumLog = r.data; }); new bootstrap.Modal(document.getElementById('logModal')).show(); },
         yorumAc(kart) { this.seciliGorev = kart; this.yeniYorum = ''; axios.get('/api/Gorevler/' + kart.id + '/yorumlar').then(r => { this.gorevYorumlar = r.data; }); new bootstrap.Modal(document.getElementById('yorumModal')).show(); },
-        yorumGonder() { if (!this.yeniYorum.trim() || !this.seciliGorev) return; axios.post('/api/Gorevler/' + this.seciliGorev.id + '/yorumlar', { yorumMetni: this.yeniYorum }).then(() => { this.gorevYorumlar.unshift({ yorumMetni: this.yeniYorum, insertDate: new Date(), dosyalar: [] }); this.yeniYorum = ''; this.yukle(); }); }
+        yorumGonder() {
+            if (!this.yeniYorum.trim() || !this.seciliGorev) return;
+            axios.post('/api/Gorevler/' + this.seciliGorev.id + '/yorumlar', { yorumMetni: this.yeniYorum })
+                .then(() => {
+                    this.yeniYorum = '';
+                    axios.get('/api/Gorevler/' + this.seciliGorev.id + '/yorumlar').then(r => { this.gorevYorumlar = r.data; });
+                    this.yukle();
+                });
     }
-}).mount('#gorevler-app');
+    }
+}).mount('#gorevler-page');
 </script>
 }

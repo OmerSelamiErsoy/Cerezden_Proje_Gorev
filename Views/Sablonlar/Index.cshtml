@@ -4,7 +4,16 @@
 <style>
     #sablon-app .table-responsive { overflow: visible !important; }
 </style>
-<div id="sablon-app">
+<div id="sablon-app" v-cloak>
+    <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
+        <div class="w-100 text-center">
+            <div class="small text-muted mb-2">Yükleniyor...</div>
+            <div class="progress" style="max-width:260px;margin:0 auto;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div>
+            </div>
+        </div>
+    </div>
+    <div class="v-cloak-hidden">
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             Proje Şablonları
@@ -62,6 +71,7 @@
         </div>
         <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button><button type="button" class="btn btn-primary" @@click="baslatOnay">Proje Başlat</button></div>
     </div></div></div>
+    </div>
 </div>
 @section Scripts {
 <script>

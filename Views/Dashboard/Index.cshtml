@@ -4,7 +4,16 @@
 <style>
     #dashboard-app .table-responsive { overflow: visible !important; }
 </style>
-<div id="dashboard-app">
+<div id="dashboard-app" v-cloak>
+    <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
+        <div class="w-100 text-center">
+            <div class="small text-muted mb-2">Yükleniyor...</div>
+            <div class="progress" style="max-width:260px;margin:0 auto;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div>
+            </div>
+        </div>
+    </div>
+    <div class="v-cloak-hidden">
     <div class="row g-4 mb-4">
         <div class="col-md-4">
             <div class="stat-card">
@@ -22,9 +31,9 @@
         </div>
         <div class="col-md-4">
             <div class="stat-card">
-                <div class="stat-card-icon success"><i class="fas fa-chart-pie"></i></div>
-                <div class="stat-card-label">Görev Durumları</div>
-                <div class="stat-card-value">{{ gorevDurumOzeti.length }}</div>
+                <div class="stat-card-icon success"><i class="fas fa-layer-group"></i></div>
+                <div class="stat-card-label">Görev Grupları</div>
+                <div class="stat-card-value">{{ gorevGrubuSayisi }}</div>
             </div>
         </div>
     </div>
@@ -78,24 +87,37 @@
         </div>
     </div>
 
-    <div class="row">
+    <div class="row g-4 mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Görevler (Tamamlandı ve İptal Edildi hariç) — Statü ve Adet</span>
-                    <a href="/Gorevler" class="btn btn-sm btn-outline-primary">Görevlere Git</a>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex flex-wrap gap-3 align-items-center" v-if="gorevDurumOzeti.length">
-                        <div v-for="s in gorevDurumOzeti" :key="s.durumAd" class="durum-ozet-pill">
-                            <span class="durum-ozet-ad">{{ s.durumAd }}</span>
-                            <span class="durum-ozet-adet">{{ s.adet }}</span>
-                        </div>
+            <h6 class="mb-3 text-muted fw-semibold">Toplam aktif görev adetleri</h6>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon warning"><i class="fas fa-clock"></i></div>
+                        <div class="stat-card-label small text-muted">İşlem Bekliyor</div>
+                        <div class="stat-card-value h4 mb-0">{{ islemBekliyorSayi }}</div>
                     </div>
-                    <div v-else class="text-muted">Aktif görev yok.</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon secondary"><i class="fas fa-pause-circle"></i></div>
+                        <div class="stat-card-label small text-muted">Beklemede</div>
+                        <div class="stat-card-value h4 mb-0">{{ beklemedeSayi }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon primary"><i class="fas fa-play-circle"></i></div>
+                        <div class="stat-card-label small text-muted">İşleme Alındı</div>
+                        <div class="stat-card-value h4 mb-0">{{ islemeAlindiSayi }}</div>
+                    </div>
                 </div>
             </div>
+            <div class="mt-2">
+                <a href="/Gorevler" class="btn btn-sm btn-outline-primary">Görevlere Git</a>
+            </div>
         </div>
+    </div>
     </div>
 </div>
 @section Scripts {
@@ -105,12 +127,26 @@ createApp({
     data() {
         return {
             aktifProjeler: [],
-            gorevDurumOzeti: []
+            gorevDurumOzeti: [],
+            gorevGrubuSayisi: 0,
+            durumOzet: []
         };
     },
     computed: {
         toplamGorevAdet() {
             return this.gorevDurumOzeti.reduce((t, s) => t + s.adet, 0);
+        },
+        islemBekliyorSayi() {
+            const kayit = this.durumOzet.find(x => x.durumAd === 'İşlem Bekliyor');
+            return kayit ? kayit.adet : 0;
+        },
+        beklemedeSayi() {
+            const kayit = this.durumOzet.find(x => x.durumAd === 'Beklemede');
+            return kayit ? kayit.adet : 0;
+        },
+        islemeAlindiSayi() {
+            const kayit = this.durumOzet.find(x => x.durumAd === 'İşleme Alındı');
+            return kayit ? kayit.adet : 0;
         }
     },
     mounted() {
@@ -118,6 +154,10 @@ createApp({
             const d = r.data;
             this.aktifProjeler = d.aktifProjeler || [];
             this.gorevDurumOzeti = d.gorevDurumOzeti || [];
+            this.gorevGrubuSayisi = d.gorevGrubuSayisi ?? 0;
+        }).catch(e => console.error(e));
+        axios.get('/api/Gorevler/durum-ozet').then(r => {
+            this.durumOzet = Array.isArray(r.data) ? r.data : [];
         }).catch(e => console.error(e));
     },
     methods: {

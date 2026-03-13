@@ -1,7 +1,16 @@
 @{
     Layout = "_AdminLayout";
 }
-<div id="parametre-app">
+<div id="parametre-app" v-cloak>
+    <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
+        <div class="w-100 text-center">
+            <div class="small text-muted mb-2">Yükleniyor...</div>
+            <div class="progress" style="max-width:260px;margin:0 auto;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div>
+            </div>
+        </div>
+    </div>
+    <div class="v-cloak-hidden">
     <ul class="nav nav-tabs mb-4">
         <li class="nav-item"><a class="nav-link" :class="{ active: tab === 'durum' }" href="#" @@click.prevent="tab='durum'">Durumlar</a></li>
         <li class="nav-item"><a class="nav-link" :class="{ active: tab === 'kategori' }" href="#" @@click.prevent="tab='kategori'">Kategoriler</a></li>
@@ -50,6 +59,7 @@
         </div>
         <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button><button type="button" class="btn btn-primary" @@click="kategoriKaydet">Kaydet</button></div>
     </div></div></div>
+    </div>
 </div>
 @section Scripts {
 <script>

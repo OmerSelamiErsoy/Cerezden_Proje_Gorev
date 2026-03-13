@@ -45,11 +45,14 @@ public class DashboardController : ControllerBase
             .Select(g => new GorevDurumOzetDto { DurumAd = g.Key.DurumAd, Adet = g.Count() })
             .ToList();
 
+        var gorevGrubuSayisi = await _db.GorevGruplar.CountAsync(ct);
+
         return Ok(new DashboardDto
         {
             ProjeSayisi = projeler.Count,
             AktifProjeler = aktifProjeler,
-            GorevDurumOzeti = gorevDurumOzeti
+            GorevDurumOzeti = gorevDurumOzeti,
+            GorevGrubuSayisi = gorevGrubuSayisi
         });
     }
 }
@@ -59,6 +62,7 @@ public class DashboardDto
     public int ProjeSayisi { get; set; }
     public List<ProjeGorevYonetimi.Services.ProjeListDto> AktifProjeler { get; set; } = new();
     public List<GorevDurumOzetDto> GorevDurumOzeti { get; set; } = new();
+    public int GorevGrubuSayisi { get; set; }
 }
 
 public class GorevDurumOzetDto

@@ -4,7 +4,16 @@
 <style>
     #projeler-app .table-responsive { overflow: visible !important; }
 </style>
-<div id="projeler-app">
+<div id="projeler-app" v-cloak>
+    <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
+        <div class="w-100 text-center">
+            <div class="small text-muted mb-2">Yükleniyor...</div>
+            <div class="progress" style="max-width:260px;margin:0 auto;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div>
+            </div>
+        </div>
+    </div>
+    <div class="v-cloak-hidden">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div></div>
         <a href="/Projeler/Create" class="btn btn-primary"><i class="fas fa-plus me-2"></i> Yeni Proje</a>
@@ -48,6 +57,7 @@
                 </tbody>
             </table>
         </div>
+    </div>
     </div>
 </div>
 @section Scripts {
