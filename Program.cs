@@ -104,6 +104,14 @@ using (var scope = app.Services.CreateScope())
             CREATE INDEX [IX_GorevDurumLoglar_YeniDurumId] ON [GorevDurumLoglar] ([YeniDurumId]);
             CREATE INDEX [IX_GorevDurumLoglar_DegistirenKullaniciId] ON [GorevDurumLoglar] ([DegistirenKullaniciId]);
         END");
+    // Gorevler.SorumluKullaniciId kolonu yoksa ekle
+    await db.Database.ExecuteSqlRawAsync(@"
+        IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Gorevler') AND name = 'SorumluKullaniciId')
+        BEGIN
+            ALTER TABLE [Gorevler] ADD [SorumluKullaniciId] int NULL;
+            CREATE INDEX [IX_Gorevler_SorumluKullaniciId] ON [Gorevler] ([SorumluKullaniciId]);
+            ALTER TABLE [Gorevler] ADD CONSTRAINT [FK_Gorevler_Kullanicilar_SorumluKullaniciId] FOREIGN KEY ([SorumluKullaniciId]) REFERENCES [Kullanicilar] ([Id]) ON DELETE NO ACTION;
+        END");
     await DbInitializer.SeedAsync(db);
 }
 

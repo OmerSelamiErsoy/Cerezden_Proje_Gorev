@@ -29,29 +29,35 @@ public class GorevlerController : ControllerBase
     public async Task<ActionResult<KanbanViewModel>> Kanban([FromQuery] int? grupId, CancellationToken ct)
     {
         var userId = _currentUser.GetCurrentUserId();
-        var durumlar = await _db.Durumlar.OrderBy(d => d.Sira).Select(d => new { d.Id, d.Ad }).ToListAsync(ct);
+        var durumlar = await _db.Durumlar.AsNoTracking().OrderBy(d => d.Sira).Select(d => new { d.Id, d.Ad }).ToListAsync(ct);
 
-        var gorevIds = await _db.Gorevler.Where(g => g.OlusturanKullaniciId == userId).Select(g => g.Id).ToListAsync(ct);
-        var atananIds = await _db.GorevAtamalar.Where(a => a.KullaniciId == userId).Select(a => a.GorevId).ToListAsync(ct);
+        var gorevIds = await _db.Gorevler.AsNoTracking().Where(g => g.OlusturanKullaniciId == userId).Select(g => g.Id).ToListAsync(ct);
+        var atananIds = await _db.GorevAtamalar.AsNoTracking().Where(a => a.KullaniciId == userId).Select(a => a.GorevId).ToListAsync(ct);
         var tumIds = gorevIds.Union(atananIds).Distinct().ToList();
 
         var aktifGorevler = await _db.Gorevler
+            .AsNoTracking()
             .Where(g => tumIds.Contains(g.Id) && g.DurumId != 4 && g.DurumId != 5 && (grupId == null || g.GorevGrubuId == grupId))
             .Include(g => g.Durum)
             .Include(g => g.OlusturanKullanici)
+            .Include(g => g.SorumluKullanici)
             .Include(g => g.Atamalar!).ThenInclude(a => a.Kullanici)
             .Include(g => g.Yorumlar)
             .OrderBy(g => g.OlusturmaTarihi)
+            .AsSplitQuery()
             .ToListAsync(ct);
 
         var tamamlananIptal = await _db.Gorevler
+            .AsNoTracking()
             .Where(g => tumIds.Contains(g.Id) && (g.DurumId == 4 || g.DurumId == 5) && (grupId == null || g.GorevGrubuId == grupId))
             .OrderByDescending(g => g.UpdateDate ?? g.OlusturmaTarihi)
             .Take(50)
             .Include(g => g.Durum)
             .Include(g => g.OlusturanKullanici)
+            .Include(g => g.SorumluKullanici)
             .Include(g => g.Atamalar!).ThenInclude(a => a.Kullanici)
             .Include(g => g.Yorumlar)
+            .AsSplitQuery()
             .ToListAsync(ct);
 
         object Map(Gorev g) => new
@@ -66,6 +72,8 @@ public class GorevlerController : ControllerBase
             g.OlusturmaTarihi,
             g.OlusturanKullaniciId,
             OlusturanAdSoyad = g.OlusturanKullanici?.AdSoyad,
+            g.SorumluKullaniciId,
+            SorumluAdSoyad = g.SorumluKullanici?.AdSoyad,
             Atananlar = g.Atamalar?.Select(a => a.Kullanici?.AdSoyad).ToList(),
             AtananKullaniciIds = g.Atamalar?.Select(a => a.KullaniciId).ToList(),
             BanaAtanmis = g.Atamalar?.Any(a => a.KullaniciId == userId) ?? false,
@@ -89,15 +97,17 @@ public class GorevlerController : ControllerBase
     public async Task<ActionResult<List<GorevDto>>> List(CancellationToken ct)
     {
         var userId = _currentUser.GetCurrentUserId();
-        var gorevIds = await _db.Gorevler.Where(g => g.OlusturanKullaniciId == userId).Select(g => g.Id).ToListAsync(ct);
-        var atananIds = await _db.GorevAtamalar.Where(a => a.KullaniciId == userId).Select(a => a.GorevId).ToListAsync(ct);
+        var gorevIds = await _db.Gorevler.AsNoTracking().Where(g => g.OlusturanKullaniciId == userId).Select(g => g.Id).ToListAsync(ct);
+        var atananIds = await _db.GorevAtamalar.AsNoTracking().Where(a => a.KullaniciId == userId).Select(a => a.GorevId).ToListAsync(ct);
         var tumIds = gorevIds.Union(atananIds).Distinct().ToList();
         var list = await _db.Gorevler
+            .AsNoTracking()
             .Where(g => tumIds.Contains(g.Id))
             .OrderByDescending(g => g.OlusturmaTarihi)
             .Include(g => g.Durum)
             .Include(g => g.OlusturanKullanici)
             .Include(g => g.Atamalar!).ThenInclude(a => a.Kullanici)
+            .AsSplitQuery()
             .Select(g => new GorevDto
             {
                 Id = g.Id,
@@ -119,56 +129,89 @@ public class GorevlerController : ControllerBase
     /// Özet: İşlem Bekliyor, Beklemede, İşleme Alındı durumlarındaki görev adetleri (sadece benim oluşturduğum veya bana atananlar).
     /// </summary>
     [HttpGet("durum-ozet")]
-    public async Task<ActionResult<List<GorevDurumOzetDto>>> DurumOzet(CancellationToken ct)
+    public async Task<ActionResult<List<GorevDurumOzetDto>>> DurumOzet([FromQuery] bool sorumluOldugum = false, CancellationToken ct = default)
     {
         var userId = _currentUser.GetCurrentUserId();
 
-        var gorevIds = await _db.Gorevler.Where(g => g.OlusturanKullaniciId == userId).Select(g => g.Id).ToListAsync(ct);
-        var atananIds = await _db.GorevAtamalar.Where(a => a.KullaniciId == userId).Select(a => a.GorevId).ToListAsync(ct);
-        var tumIds = gorevIds.Union(atananIds).Distinct().ToList();
-
-        if (!tumIds.Any())
-        {
-            return Ok(new List<GorevDurumOzetDto>());
-        }
-
         var hedefDurumAdlari = new[] { "İşlem Bekliyor", "Beklemede", "İşleme Alındı" };
         var durumlar = await _db.Durumlar
+            .AsNoTracking()
             .Where(d => hedefDurumAdlari.Contains(d.Ad))
             .Select(d => new { d.Id, d.Ad })
             .ToListAsync(ct);
-
         var durumIdler = durumlar.Select(d => d.Id).ToList();
-        if (!durumIdler.Any())
+        if (!durumIdler.Any()) return Ok(new List<GorevDurumOzetDto>());
+
+        if (sorumluOldugum)
         {
-            return Ok(new List<GorevDurumOzetDto>());
+            // Kanban ile aynı görünürlük: sadece benim oluşturduğum veya bana atanan görevlerden sorumlu olduklarım
+            var gorevIdsSorumlu = await _db.Gorevler.AsNoTracking().Where(g => !g.IsDeleted && g.OlusturanKullaniciId == userId).Select(g => g.Id).ToListAsync(ct);
+            var atananIdsSorumlu = await _db.GorevAtamalar.AsNoTracking().Where(a => a.KullaniciId == userId).Select(a => a.GorevId).ToListAsync(ct);
+            var tumGorevIdsSorumlu = gorevIdsSorumlu.Union(atananIdsSorumlu).Distinct().ToList();
+            if (!tumGorevIdsSorumlu.Any())
+            {
+                return Ok(durumlar.Select(d => new GorevDurumOzetDto { DurumAd = d.Ad, Adet = 0 }).OrderBy(x => Array.IndexOf(hedefDurumAdlari, x.DurumAd)).ToList());
+            }
+            var aktifGrupIdler = await _db.GorevGruplar.AsNoTracking().Select(x => x.Id).ToListAsync(ct);
+            var sayilar = await _db.Gorevler
+                .AsNoTracking()
+                .Where(g => !g.IsDeleted && g.SorumluKullaniciId == userId && tumGorevIdsSorumlu.Contains(g.Id)
+                    && durumIdler.Contains(g.DurumId)
+                    && (g.GorevGrubuId == null || aktifGrupIdler.Contains(g.GorevGrubuId.Value)))
+                .GroupBy(g => g.DurumId)
+                .Select(g => new { DurumId = g.Key, Sayi = g.Count() })
+                .ToListAsync(ct);
+            var sonuc = durumlar
+                .Select(d => new GorevDurumOzetDto
+                {
+                    DurumAd = d.Ad,
+                    Adet = sayilar.FirstOrDefault(x => x.DurumId == d.Id)?.Sayi ?? 0
+                })
+                .OrderBy(x => Array.IndexOf(hedefDurumAdlari, x.DurumAd))
+                .ToList();
+            return Ok(sonuc);
         }
 
-        var sayilar = await _db.Gorevler
-            .Where(g => tumIds.Contains(g.Id) && durumIdler.Contains(g.DurumId))
+        var aktifGrupIdlerToplam = await _db.GorevGruplar.AsNoTracking().Select(x => x.Id).ToListAsync(ct);
+        var gorevIds = await _db.Gorevler
+            .AsNoTracking()
+            .Where(g => !g.IsDeleted && g.OlusturanKullaniciId == userId && (g.GorevGrubuId == null || aktifGrupIdlerToplam.Contains(g.GorevGrubuId!.Value)))
+            .Select(g => g.Id).ToListAsync(ct);
+        var atananIds = await _db.GorevAtamalar.AsNoTracking().Where(a => a.KullaniciId == userId).Select(a => a.GorevId).ToListAsync(ct);
+        var tumIds = gorevIds.Union(atananIds).Distinct().ToList();
+        if (!tumIds.Any()) return Ok(new List<GorevDurumOzetDto>());
+
+        var toplamSayilar = await _db.Gorevler
+            .AsNoTracking()
+            .Where(g => !g.IsDeleted && tumIds.Contains(g.Id) && durumIdler.Contains(g.DurumId)
+                && (g.GorevGrubuId == null || aktifGrupIdlerToplam.Contains(g.GorevGrubuId!.Value)))
             .GroupBy(g => g.DurumId)
             .Select(g => new { DurumId = g.Key, Sayi = g.Count() })
             .ToListAsync(ct);
 
-        var sonuc = durumlar
+        var toplamSonuc = durumlar
             .Select(d => new GorevDurumOzetDto
             {
                 DurumAd = d.Ad,
-                Adet = sayilar.FirstOrDefault(x => x.DurumId == d.Id)?.Sayi ?? 0
+                Adet = toplamSayilar.FirstOrDefault(x => x.DurumId == d.Id)?.Sayi ?? 0
             })
             .OrderBy(x => Array.IndexOf(hedefDurumAdlari, x.DurumAd))
             .ToList();
 
-        return Ok(sonuc);
+        return Ok(toplamSonuc);
     }
 
     [HttpPost]
     public async Task<ActionResult<object>> Create([FromBody] GorevCreateDto dto, CancellationToken ct)
     {
         var userId = _currentUser.GetCurrentUserId();
+        if (dto.Turu == 1 && (!dto.SorumluKullaniciId.HasValue || dto.SorumluKullaniciId.Value == 0))
+            return BadRequest(new { error = "Tür 'Kişilere' seçiliyse Sorumlu Kişi zorunludur." });
+
         var islemBekliyorId = await _db.Durumlar.Where(x => x.Ad == "İşlem Bekliyor").Select(x => x.Id).FirstOrDefaultAsync(ct);
         if (islemBekliyorId == 0) islemBekliyorId = 1;
 
+        var sorumluId = dto.Turu == 0 ? userId : (dto.SorumluKullaniciId ?? userId);
         var gorev = new Gorev
         {
             GorevGrubuId = dto.GorevGrubuId,
@@ -177,7 +220,8 @@ public class GorevlerController : ControllerBase
             Turu = dto.Turu,
             OlusturanKullaniciId = userId,
             OlusturmaTarihi = DateTime.UtcNow,
-            DurumId = islemBekliyorId
+            DurumId = islemBekliyorId,
+            SorumluKullaniciId = sorumluId
         };
         _db.Gorevler.Add(gorev);
         await _db.SaveChangesAsync(ct);
@@ -202,6 +246,8 @@ public class GorevlerController : ControllerBase
         gorev.DurumId = dto.DurumId;
         gorev.Renk = dto.Renk;
         gorev.Turu = dto.Turu;
+        var userId = _currentUser.GetCurrentUserId();
+        gorev.SorumluKullaniciId = dto.Turu == 0 ? userId : (dto.SorumluKullaniciId ?? userId);
 
         // Tür / atamalar: mevcut atamaları kaldır, yenilerini ekle
         if (gorev.Atamalar != null)
@@ -218,7 +264,6 @@ public class GorevlerController : ControllerBase
         // Durum değiştiyse log kaydını aynı transaction içinde ekle (tek SaveChanges ile yazılsın)
         if (eskiDurumId != dto.DurumId)
         {
-            var userId = _currentUser.GetCurrentUserId();
             _db.GorevDurumLoglar.Add(new GorevDurumLog
             {
                 GorevId = id,
@@ -251,6 +296,7 @@ public class GorevlerController : ControllerBase
         try
         {
             var list = await _db.GorevDurumLoglar
+                .AsNoTracking()
                 .Where(l => l.GorevId == gorevId)
                 .OrderByDescending(l => l.DegistirmeTarihi)
                 .Include(l => l.DegistirenKullanici)
@@ -262,6 +308,7 @@ public class GorevlerController : ControllerBase
                     EskiDurumAd = l.EskiDurum != null ? l.EskiDurum.Ad : null,
                     YeniDurumAd = l.YeniDurum!.Ad,
                     DegistirenAdSoyad = l.DegistirenKullanici.AdSoyad,
+                    DegistirenCepTel = l.DegistirenKullanici.CepTel,
                     DegistirmeTarihi = l.DegistirmeTarihi
                 })
                 .ToListAsync(ct);
@@ -277,20 +324,28 @@ public class GorevlerController : ControllerBase
     public async Task<ActionResult<List<GorevYorumDto>>> Yorumlar(int gorevId, CancellationToken ct)
     {
         // Yorumları yazan kullanıcı bilgisiyle birlikte getir
-        var list = await (from y in _db.GorevYorumlar
+        var yorumlar = await (from y in _db.GorevYorumlar.AsNoTracking()
                           where y.GorevId == gorevId
                           orderby y.InsertDate descending
-                          join k in _db.Kullanicilar.IgnoreQueryFilters() on y.InsertedByUserId equals k.Id into gj
+                          join k in _db.Kullanicilar.AsNoTracking().IgnoreQueryFilters() on y.InsertedByUserId equals k.Id into gj
                           from k in gj.DefaultIfEmpty()
-                          select new GorevYorumDto
-                          {
-                              Id = y.Id,
-                              YorumMetni = y.YorumMetni,
-                              InsertDate = y.InsertDate,
-                              YazanAdSoyad = k != null ? k.AdSoyad : null,
-                              Dosyalar = y.Dosyalar!.Select(f => new GorevDosyaDto { Id = f.Id, DosyaAdi = f.DosyaAdi, DosyaYolu = f.DosyaYolu }).ToList()
-                          })
+                          select new { y.Id, y.YorumMetni, y.InsertDate, YazanAdSoyad = k != null ? k.AdSoyad : null, YazanCepTel = k != null ? k.CepTel : null }
+                          ).ToListAsync(ct);
+        var yorumIds = yorumlar.Select(x => x.Id).ToList();
+        var dosyalarList = await _db.GorevYorumDosyalar.AsNoTracking()
+            .Where(f => yorumIds.Contains(f.GorevYorumId))
+            .Select(f => new { f.GorevYorumId, f.Id, f.DosyaAdi, f.DosyaYolu })
             .ToListAsync(ct);
+        var dosyaDict = dosyalarList.GroupBy(x => x.GorevYorumId).ToDictionary(g => g.Key, g => g.Select(f => new GorevDosyaDto { Id = f.Id, DosyaAdi = f.DosyaAdi, DosyaYolu = f.DosyaYolu }).ToList());
+        var list = yorumlar.Select(y => new GorevYorumDto
+        {
+            Id = y.Id,
+            YorumMetni = y.YorumMetni,
+            InsertDate = y.InsertDate,
+            YazanAdSoyad = y.YazanAdSoyad,
+            YazanCepTel = y.YazanCepTel,
+            Dosyalar = dosyaDict.GetValueOrDefault(y.Id, new List<GorevDosyaDto>())
+        }).ToList();
         return Ok(list);
     }
 
@@ -356,6 +411,7 @@ public class GorevCreateDto
     public string Ad { get; set; } = "";
     public string? Aciklama { get; set; }
     public int Turu { get; set; }
+    public int? SorumluKullaniciId { get; set; }
     public List<int>? AtananKullaniciIds { get; set; }
 }
 public class GorevUpdateDto
@@ -364,6 +420,7 @@ public class GorevUpdateDto
     public string? Aciklama { get; set; }
     public int DurumId { get; set; }
     public int Turu { get; set; }
+    public int? SorumluKullaniciId { get; set; }
     public List<int>? AtananKullaniciIds { get; set; }
     public string? Renk { get; set; }
 }
@@ -373,6 +430,7 @@ public class GorevDurumLogDto
     public string? EskiDurumAd { get; set; }
     public string YeniDurumAd { get; set; } = "";
     public string DegistirenAdSoyad { get; set; } = "";
+    public string? DegistirenCepTel { get; set; }
     public DateTime DegistirmeTarihi { get; set; }
 }
 public class GorevYorumDto
@@ -381,6 +439,7 @@ public class GorevYorumDto
     public string YorumMetni { get; set; } = "";
     public DateTime? InsertDate { get; set; }
     public string? YazanAdSoyad { get; set; }
+    public string? YazanCepTel { get; set; }
     public List<GorevDosyaDto> Dosyalar { get; set; } = new();
 }
 

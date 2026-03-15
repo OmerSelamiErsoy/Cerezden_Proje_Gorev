@@ -96,6 +96,12 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(g => g.OlusturanKullaniciId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        modelBuilder.Entity<Gorev>()
+            .HasOne(g => g.SorumluKullanici)
+            .WithMany()
+            .HasForeignKey(g => g.SorumluKullaniciId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         modelBuilder.Entity<GorevAtama>()
             .HasOne(a => a.Kullanici)
             .WithMany(k => k!.GorevAtamalari)

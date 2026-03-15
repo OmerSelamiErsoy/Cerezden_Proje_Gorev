@@ -3,8 +3,90 @@
 }
 <style>
     #sablon-app .table-responsive { overflow: visible !important; }
+    /* Şablon modal - Adımlar (Projeler/Create ile aynı tasarım) */
+    #sablon-app #sablonModal .sablon-adimlar {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.25rem;
+    }
+    #sablon-app #sablonModal .sablon-adimlar .adimlar-baslik {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 1rem;
+    }
+    #sablon-app #sablonModal .sablon-adimlar .adim-satir {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 12px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        margin-bottom: 8px;
+    }
+    #sablon-app #sablonModal .sablon-adimlar .adim-satir .adim-numara {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        color: #64748b;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    #sablon-app #sablonModal .sablon-adimlar .adim-satir .adim-ad-input { flex: 1; min-width: 0; }
+    #sablon-app #sablonModal .sablon-adimlar .adim-satir .adim-kategori { width: 160px; flex-shrink: 0; }
+    #sablon-app #sablonModal .sablon-adimlar .adim-ekle-btn { margin-top: 10px; border-style: dashed; border-width: 2px; }
+    /* Proje Başlat modal - Paylaşılacak Kişiler (Projeler/Create ile aynı) */
+    #sablon-app #projeBaslatModal .paylasilacak-kisiler-list {
+        max-height: 220px;
+        overflow-y: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 8px;
+        background: #fafafa;
+    }
+    #sablon-app #projeBaslatModal .paylasilacak-kisiler-list .paylasilacak-kisi-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+    #sablon-app #projeBaslatModal .paylasilacak-kisiler-list .paylasilacak-kisi-item:hover { background: #f1f5f9; }
+    #sablon-app #projeBaslatModal .paylasilacak-kisi-item .custom-checkbox-wrap {
+        flex-shrink: 0;
+        width: 22px;
+        height: 22px;
+        position: relative;
+        border-radius: 6px;
+        border: 2px solid #cbd5e1;
+        background: #fff;
+        transition: border-color 0.2s, background 0.2s;
+    }
+    #sablon-app #projeBaslatModal .paylasilacak-kisi-item.selected .custom-checkbox-wrap { background: #3b82f6; border-color: #3b82f6; }
+    #sablon-app #projeBaslatModal .paylasilacak-kisi-item .custom-checkbox-wrap .check-icon {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+    #sablon-app #projeBaslatModal .paylasilacak-kisi-item.selected .custom-checkbox-wrap .check-icon { opacity: 1; }
+    #sablon-app #projeBaslatModal .paylasilacak-kisi-item .custom-checkbox-wrap .check-icon svg { width: 14px; height: 14px; stroke: #fff; }
+    #sablon-app #projeBaslatModal .paylasilacak-kisi-item .kisi-adi { flex: 1; font-weight: 500; color: #1e293b; }
+    #sablon-app #projeBaslatModal .paylasilacak-kisi-item .kisi-ceptel { font-size: 0.875rem; color: #64748b; }
 </style>
-<div id="sablon-app" v-cloak>
+<div id="sablon-app" data-vue-page v-cloak>
     <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
         <div class="w-100 text-center">
             <div class="small text-muted mb-2">Yükleniyor...</div>
@@ -52,9 +134,20 @@
         <div class="modal-body">
             <div class="mb-2"><label class="form-label">Şablon Adı</label><input v-model="sablonForm.ad" class="form-control" /></div>
             <div class="mb-2"><label class="form-label">Açıklama</label><textarea v-model="sablonForm.aciklama" class="form-control" rows="2"></textarea></div>
-            <label class="form-label">Adımlar</label>
-            <div v-for="(d, i) in sablonForm.detaylar" :key="i" class="d-flex gap-2 mb-2"><input v-model="d.adimAdi" class="form-control" placeholder="Adım adı" /><select v-model="d.kategoriId" class="form-select" style="width:140px"><option :value="null">Kategori</option><option v-for="k in kategoriler" :key="k.id" :value="k.id">{{ k.ad }}</option></select><button type="button" class="btn btn-outline-danger btn-sm" @@click="sablonForm.detaylar.splice(i,1)">×</button></div>
-            <button type="button" class="btn btn-outline-secondary btn-sm" @@click="sablonForm.detaylar.push({ adimAdi: '', kategoriId: null })">+ Adım</button>
+            <div class="mb-2"><label class="form-label">Adımlar</label></div>
+            <div class="sablon-adimlar">
+                <div class="adimlar-baslik"><i class="fas fa-list-ol me-1"></i> Şablon adımları</div>
+                <div v-for="(d, i) in sablonForm.detaylar" :key="i" class="adim-satir">
+                    <span class="adim-numara">{{ i + 1 }}</span>
+                    <input v-model="d.adimAdi" class="form-control form-control-sm adim-ad-input" placeholder="Adım adı" />
+                    <select v-model="d.kategoriId" class="form-select form-select-sm adim-kategori">
+                        <option :value="null">Kategori</option>
+                        <option v-for="k in kategoriler" :key="k.id" :value="k.id">{{ k.ad }}</option>
+                    </select>
+                    <button type="button" class="btn btn-outline-danger btn-sm" @@click="sablonForm.detaylar.splice(i,1)" title="Adımı sil"><i class="fas fa-times"></i></button>
+                </div>
+                <button type="button" class="btn btn-outline-secondary btn-sm adim-ekle-btn" @@click="sablonForm.detaylar.push({ adimAdi: '', kategoriId: null })"><i class="fas fa-plus me-1"></i> Adım Ekle</button>
+            </div>
         </div>
         <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button><button type="button" class="btn btn-primary" @@click="sablonKaydet">Kaydet</button></div>
     </div></div></div>
@@ -65,9 +158,26 @@
             <div class="mb-2"><label class="form-label">Proje Adı</label><input v-model="baslatForm.ad" class="form-control" :placeholder="seciliSablon && seciliSablon.ad" /></div>
             <div class="mb-2"><label class="form-label">Başlangıç Tarihi</label><input v-model="baslatForm.baslangicTarihi" type="date" class="form-control" /></div>
             <div class="mb-2"><label class="form-label">Planlanan Bitiş</label><input v-model="baslatForm.planlananBitisTarihi" type="date" class="form-control" /></div>
-            <div class="mb-2"><label class="form-label">Sorumlu</label><select v-model="baslatForm.sorumluKullaniciId" class="form-select"><option :value="null">Seçiniz</option><option v-for="k in kullanicilar" :key="k.id" :value="k.id">{{ k.adSoyad }}</option></select></div>
-            <div class="mb-2"><label class="form-label">Yetki</label><div><label class="me-2"><input type="radio" v-model="baslatForm.yetkiTipi" :value="0" /> Genel</label><label><input type="radio" v-model="baslatForm.yetkiTipi" :value="1" /> Kişi bazlı</label></div></div>
-            <div v-if="baslatForm.yetkiTipi === 1"><label class="form-label">Kullanıcılar</label><select v-model="baslatForm.yetkiKullaniciIds" multiple class="form-select" style="height:100px"><option v-for="k in kullanicilar" :key="k.id" :value="k.id">{{ k.adSoyad }}</option></select></div>
+            <div class="mb-2"><label class="form-label">Sorumlu</label><select v-model="baslatForm.sorumluKullaniciId" class="form-select"><option :value="null">Seçiniz</option><option v-for="k in kullanicilar" :key="k.id" :value="k.id">{{ k.adSoyad }} - {{ k.cepTel || '-' }}</option></select></div>
+            <div class="mb-2">
+                <label class="form-label">Paylaşılacak Kişiler</label>
+                <div>
+                    <label class="me-3"><input type="radio" v-model="baslatForm.yetkiTipi" :value="0" /> Genel (tüm kullanıcılar)</label>
+                    <label><input type="radio" v-model="baslatForm.yetkiTipi" :value="1" /> Kişi bazlı</label>
+                </div>
+                <div v-if="baslatForm.yetkiTipi === 1" class="mt-2">
+                    <div class="paylasilacak-kisiler-list">
+                        <div v-for="k in kullanicilar" :key="k.id" class="paylasilacak-kisi-item" :class="{ selected: (baslatForm.yetkiKullaniciIds || []).indexOf(k.id) !== -1 }" @@click="yetkiKullaniciToggle(k)">
+                            <div class="custom-checkbox-wrap">
+                                <span class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                            </div>
+                            <span class="kisi-adi">{{ k.adSoyad }}</span>
+                            <span class="kisi-ceptel">{{ k.cepTel || '-' }}</span>
+                        </div>
+                    </div>
+                    <small class="text-muted">Birden fazla kişi seçebilirsiniz.</small>
+                </div>
+            </div>
         </div>
         <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button><button type="button" class="btn btn-primary" @@click="baslatOnay">Proje Başlat</button></div>
     </div></div></div>
@@ -88,21 +198,35 @@ createApp({
         };
     },
     mounted() {
-        this.sablonYukle();
-        axios.get('/api/Parametre/kategoriler').then(r => { this.kategoriler = r.data; });
-        axios.get('/api/Kullanicilar').then(r => { this.kullanicilar = r.data; });
+        Promise.all([
+            axios.get('/api/Sablon').then(r => { this.sablonlar = r.data; }),
+            axios.get('/api/Parametre/kategoriler').then(r => { this.kategoriler = r.data; }),
+            axios.get('/api/Kullanicilar').then(r => { this.kullanicilar = r.data; })
+        ]).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
     },
     methods: {
-        sablonYukle() { axios.get('/api/Sablon').then(r => { this.sablonlar = r.data; }); },
+        sablonYukle() { return axios.get('/api/Sablon').then(r => { this.sablonlar = r.data; }); },
         sablonEkle() { this.sablonForm = { id: null, ad: '', aciklama: '', detaylar: [] }; new bootstrap.Modal(document.getElementById('sablonModal')).show(); },
         sablonDuzenle(s) { axios.get('/api/Sablon/' + s.id).then(r => { this.sablonForm = { id: r.data.id, ad: r.data.ad, aciklama: r.data.aciklama, detaylar: (r.data.detaylar || []).map(d => ({ adimAdi: d.adimAdi, kategoriId: d.kategoriId })) }; new bootstrap.Modal(document.getElementById('sablonModal')).show(); }); },
         sablonKaydet() {
             const payload = { ad: this.sablonForm.ad, aciklama: this.sablonForm.aciklama, detaylar: this.sablonForm.detaylar.map((d, i) => ({ adimAdi: d.adimAdi, kategoriId: d.kategoriId, sira: i + 1 })) };
-            if (this.sablonForm.id) axios.put('/api/Sablon/' + this.sablonForm.id, payload).then(() => { this.sablonYukle(); bootstrap.Modal.getInstance(document.getElementById('sablonModal')).hide(); });
-            else axios.post('/api/Sablon', payload).then(() => { this.sablonYukle(); bootstrap.Modal.getInstance(document.getElementById('sablonModal')).hide(); });
+            if (window.setPageLoading) window.setPageLoading(true);
+            const p = this.sablonForm.id ? axios.put('/api/Sablon/' + this.sablonForm.id, payload) : axios.post('/api/Sablon', payload);
+            p.then(() => this.sablonYukle()).then(() => { bootstrap.Modal.getInstance(document.getElementById('sablonModal')).hide(); if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
         },
-        sablonSil(id) { if (confirm('Şablon silinsin mi?')) axios.delete('/api/Sablon/' + id).then(() => this.sablonYukle()); },
+        sablonSil(id) {
+            if (!confirm('Şablon silinsin mi?')) return;
+            if (window.setPageLoading) window.setPageLoading(true);
+            axios.delete('/api/Sablon/' + id).then(() => this.sablonYukle()).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
+        },
         projeBaslat(s) { this.seciliSablon = s; this.baslatForm = { ad: s.ad, baslangicTarihi: null, planlananBitisTarihi: null, sorumluKullaniciId: null, yetkiTipi: 0, yetkiKullaniciIds: [] }; new bootstrap.Modal(document.getElementById('projeBaslatModal')).show(); },
+        yetkiKullaniciToggle(k) {
+            var ids = this.baslatForm.yetkiKullaniciIds || [];
+            var idx = ids.indexOf(k.id);
+            if (idx === -1) ids.push(k.id);
+            else ids.splice(idx, 1);
+            this.baslatForm.yetkiKullaniciIds = ids;
+        },
         baslatOnay() {
             const payload = { ad: this.baslatForm.ad || this.seciliSablon.ad, baslangicTarihi: this.baslatForm.baslangicTarihi || null, planlananBitisTarihi: this.baslatForm.planlananBitisTarihi || null, sorumluKullaniciId: this.baslatForm.sorumluKullaniciId, yetkiTipi: this.baslatForm.yetkiTipi, yetkiKullaniciIds: this.baslatForm.yetkiTipi === 1 ? this.baslatForm.yetkiKullaniciIds : null };
             axios.post('/api/Sablon/' + this.seciliSablon.id + '/proje-baslat', payload).then(r => { window.location.href = '/Projeler/Detay/' + r.data.id; });

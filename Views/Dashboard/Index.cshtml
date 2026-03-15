@@ -3,8 +3,80 @@
 }
 <style>
     #dashboard-app .table-responsive { overflow: visible !important; }
+    .dashboard-hero {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+        border-radius: var(--radius-lg, 14px);
+        padding: 1.5rem 1.75rem;
+        margin-bottom: 1.75rem;
+        color: #f1f5f9;
+        box-shadow: 0 4px 20px rgba(15, 23, 42, 0.25);
+    }
+    .dashboard-hero h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: -0.02em; }
+    .dashboard-hero p { font-size: 0.875rem; color: #94a3b8; margin-bottom: 0; }
+    .dashboard-section {
+        margin-bottom: 1.75rem;
+    }
+    .dashboard-section-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .dashboard-section-title.sorumlu { color: #0d9488; }
+    .dashboard-stats-row { margin-bottom: 0.5rem; }
+    .dashboard-projeler-wrap {
+        background: #fff;
+        border-radius: var(--radius-lg, 14px);
+        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        overflow: hidden;
+    }
+    .dashboard-projeler-wrap .card-header {
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        font-weight: 600;
+        color: #1e293b;
+        padding: 1rem 1.25rem;
+    }
+    .dashboard-projeler-wrap .table { margin-bottom: 0; }
+    .dashboard-projeler-wrap .table thead th { font-size: 0.8125rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 1px solid #e2e8f0; padding: 0.75rem 1rem; }
+    .dashboard-projeler-wrap .table tbody td { padding: 0.75rem 1rem; vertical-align: middle; }
+    .dashboard-projeler-wrap .table tbody tr:hover { background: #f8fafc; }
+    .dashboard-cta { margin-top: 1rem; }
+    /* Durum kartları: ikon | durum adı | adet (yatay, kompakt) - Görevler ile aynı */
+    #dashboard-app .dashboard-durum-section .stat-card {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.65rem 1rem;
+        min-height: auto;
+    }
+    #dashboard-app .dashboard-durum-section .stat-card-icon {
+        width: 38px;
+        height: 38px;
+        font-size: 1rem;
+        margin-bottom: 0;
+        flex-shrink: 0;
+    }
+    #dashboard-app .dashboard-durum-section .stat-card:hover .stat-card-icon { transform: none; }
+    #dashboard-app .dashboard-durum-section .stat-card-label {
+        margin-bottom: 0;
+        flex: 1;
+        font-size: 0.8125rem;
+    }
+    #dashboard-app .dashboard-durum-section .stat-card-value {
+        font-size: 1.15rem;
+        margin-bottom: 0 !important;
+        flex-shrink: 0;
+    }
 </style>
-<div id="dashboard-app" v-cloak>
+<div id="dashboard-app" data-vue-page v-cloak>
     <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
         <div class="w-100 text-center">
             <div class="small text-muted mb-2">Yükleniyor...</div>
@@ -14,35 +86,100 @@
         </div>
     </div>
     <div class="v-cloak-hidden">
-    <div class="row g-4 mb-4">
-        <div class="col-md-4">
-            <div class="stat-card">
-                <div class="stat-card-icon primary"><i class="fas fa-folder-open"></i></div>
-                <div class="stat-card-label">Aktif Proje</div>
-                <div class="stat-card-value">{{ aktifProjeler.length }}</div>
-            </div>
+        <div class="dashboard-hero">
+            <h2>Hoş Geldiniz</h2>
+            <p>Aktif projeleriniz ve görev özetiniz aşağıda.</p>
         </div>
-        <div class="col-md-4">
-            <div class="stat-card">
-                <div class="stat-card-icon warning"><i class="fas fa-list-check"></i></div>
-                <div class="stat-card-label">Aktif Görev</div>
-                <div class="stat-card-value">{{ toplamGorevAdet }}</div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="stat-card">
-                <div class="stat-card-icon success"><i class="fas fa-layer-group"></i></div>
-                <div class="stat-card-label">Görev Grupları</div>
-                <div class="stat-card-value">{{ gorevGrubuSayisi }}</div>
-            </div>
-        </div>
-    </div>
 
-    <div class="row g-4 mb-4">
-        <div class="col-12">
-            <div class="card">
+        <div class="dashboard-section">
+            <div class="dashboard-section-title"><i class="fas fa-chart-pie"></i> Özet</div>
+            <div class="row g-3 dashboard-stats-row">
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon primary"><i class="fas fa-folder-open"></i></div>
+                        <div class="stat-card-label">Aktif Proje</div>
+                        <div class="stat-card-value">{{ aktifProjeler.length }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon warning"><i class="fas fa-list-check"></i></div>
+                        <div class="stat-card-label">Aktif Görev</div>
+                        <div class="stat-card-value">{{ toplamGorevAdet }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon success"><i class="fas fa-layer-group"></i></div>
+                        <div class="stat-card-label">Görev Grupları</div>
+                        <div class="stat-card-value">{{ gorevGrubuSayisi }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-section dashboard-durum-section">
+            <div class="dashboard-section-title sorumlu"><i class="fas fa-user-check"></i> Sorumlusu olduğum aktif görev adetleri</div>
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon warning"><i class="fas fa-clock"></i></div>
+                        <div class="stat-card-label small text-muted">İşlem Bekliyor</div>
+                        <div class="stat-card-value">{{ sorumluIslemBekliyorSayi }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon secondary"><i class="fas fa-pause-circle"></i></div>
+                        <div class="stat-card-label small text-muted">Beklemede</div>
+                        <div class="stat-card-value">{{ sorumluBeklemedeSayi }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon primary"><i class="fas fa-play-circle"></i></div>
+                        <div class="stat-card-label small text-muted">İşleme Alındı</div>
+                        <div class="stat-card-value">{{ sorumluIslemeAlindiSayi }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-section dashboard-durum-section">
+            <div class="dashboard-section-title"><i class="fas fa-chart-bar"></i> Toplam aktif görev adetleri</div>
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon warning"><i class="fas fa-clock"></i></div>
+                        <div class="stat-card-label small text-muted">İşlem Bekliyor</div>
+                        <div class="stat-card-value">{{ islemBekliyorSayi }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon secondary"><i class="fas fa-pause-circle"></i></div>
+                        <div class="stat-card-label small text-muted">Beklemede</div>
+                        <div class="stat-card-value">{{ beklemedeSayi }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon primary"><i class="fas fa-play-circle"></i></div>
+                        <div class="stat-card-label small text-muted">İşleme Alındı</div>
+                        <div class="stat-card-value">{{ islemeAlindiSayi }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-cta">
+                <a href="/Gorevler" class="btn btn-primary btn-sm"><i class="fas fa-arrow-right me-1"></i> Görevlere Git</a>
+            </div>
+        </div>
+
+        <div class="dashboard-section">
+            <div class="dashboard-section-title"><i class="fas fa-folder-open"></i> Projeler (Tamamlandı ve İptal hariç)</div>
+            <div class="dashboard-projeler-wrap card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Projeler (Tamamlandı ve İptal Edildi hariç)</span>
+                    <span>Aktif Projeler</span>
                     <a href="/Projeler" class="btn btn-sm btn-outline-primary">Tüm Projeler</a>
                 </div>
                 <div class="table-responsive">
@@ -59,16 +196,16 @@
                         </thead>
                         <tbody>
                             <tr v-for="p in aktifProjeler" :key="p.id">
-                                <td><a :href="'/Projeler/Detay/' + p.id">{{ p.ad }}</a></td>
+                                <td><a :href="'/Projeler/Detay/' + p.id" class="fw-medium text-decoration-none">{{ p.ad }}</a></td>
                                 <td><span class="badge bg-secondary">{{ p.projeDurumAd }}</span></td>
                                 <td>
                                     <div class="d-flex align-items-center gap-2">
-                                        <div class="progress flex-grow-1" style="width:80px"><div class="progress-bar" :style="{width: p.progressYuzde + '%'}"></div></div>
-                                        <span>{{ p.progressYuzde }}%</span>
+                                        <div class="progress flex-grow-1" style="width:80px;height:6px"><div class="progress-bar" :style="{width: p.progressYuzde + '%'}"></div></div>
+                                        <span class="small">{{ p.progressYuzde }}%</span>
                                     </div>
                                 </td>
-                                <td>{{ formatDate(p.planlananBitisTarihi) }}</td>
-                                <td>{{ p.sorumluAdSoyad || '-' }}</td>
+                                <td class="small">{{ formatDate(p.planlananBitisTarihi) }}</td>
+                                <td class="small">{{ p.sorumluAdSoyad || '-' }}</td>
                                 <td>
                                     <div class="dropdown" data-bs-popper-config='{"strategy":"fixed"}'>
                                         <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">İşlemler</button>
@@ -79,45 +216,12 @@
                                     </div>
                                 </td>
                             </tr>
-                            <tr v-if="aktifProjeler.length === 0"><td colspan="6" class="text-center text-muted py-4">Aktif proje bulunamadı.</td></tr>
+                            <tr v-if="aktifProjeler.length === 0"><td colspan="6" class="text-center text-muted py-5">Aktif proje bulunamadı.</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
-    </div>
-
-    <div class="row g-4 mb-4">
-        <div class="col-12">
-            <h6 class="mb-3 text-muted fw-semibold">Toplam aktif görev adetleri</h6>
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <div class="stat-card-icon warning"><i class="fas fa-clock"></i></div>
-                        <div class="stat-card-label small text-muted">İşlem Bekliyor</div>
-                        <div class="stat-card-value h4 mb-0">{{ islemBekliyorSayi }}</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <div class="stat-card-icon secondary"><i class="fas fa-pause-circle"></i></div>
-                        <div class="stat-card-label small text-muted">Beklemede</div>
-                        <div class="stat-card-value h4 mb-0">{{ beklemedeSayi }}</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <div class="stat-card-icon primary"><i class="fas fa-play-circle"></i></div>
-                        <div class="stat-card-label small text-muted">İşleme Alındı</div>
-                        <div class="stat-card-value h4 mb-0">{{ islemeAlindiSayi }}</div>
-                    </div>
-                </div>
-            </div>
-            <div class="mt-2">
-                <a href="/Gorevler" class="btn btn-sm btn-outline-primary">Görevlere Git</a>
-            </div>
-        </div>
-    </div>
     </div>
 </div>
 @section Scripts {
@@ -129,7 +233,8 @@ createApp({
             aktifProjeler: [],
             gorevDurumOzeti: [],
             gorevGrubuSayisi: 0,
-            durumOzet: []
+            durumOzet: [],
+            durumOzetSorumlu: []
         };
     },
     computed: {
@@ -147,18 +252,31 @@ createApp({
         islemeAlindiSayi() {
             const kayit = this.durumOzet.find(x => x.durumAd === 'İşleme Alındı');
             return kayit ? kayit.adet : 0;
+        },
+        sorumluIslemBekliyorSayi() {
+            const kayit = this.durumOzetSorumlu.find(x => x.durumAd === 'İşlem Bekliyor');
+            return kayit ? kayit.adet : 0;
+        },
+        sorumluBeklemedeSayi() {
+            const kayit = this.durumOzetSorumlu.find(x => x.durumAd === 'Beklemede');
+            return kayit ? kayit.adet : 0;
+        },
+        sorumluIslemeAlindiSayi() {
+            const kayit = this.durumOzetSorumlu.find(x => x.durumAd === 'İşleme Alındı');
+            return kayit ? kayit.adet : 0;
         }
     },
     mounted() {
-        axios.get('/api/Dashboard').then(r => {
-            const d = r.data;
-            this.aktifProjeler = d.aktifProjeler || [];
-            this.gorevDurumOzeti = d.gorevDurumOzeti || [];
-            this.gorevGrubuSayisi = d.gorevGrubuSayisi ?? 0;
-        }).catch(e => console.error(e));
-        axios.get('/api/Gorevler/durum-ozet').then(r => {
-            this.durumOzet = Array.isArray(r.data) ? r.data : [];
-        }).catch(e => console.error(e));
+        Promise.all([
+            axios.get('/api/Dashboard').then(r => {
+                const d = r.data;
+                this.aktifProjeler = d.aktifProjeler || [];
+                this.gorevDurumOzeti = d.gorevDurumOzeti || [];
+                this.gorevGrubuSayisi = d.gorevGrubuSayisi ?? 0;
+            }),
+            axios.get('/api/Gorevler/durum-ozet').then(r => { this.durumOzet = Array.isArray(r.data) ? r.data : []; }),
+            axios.get('/api/Gorevler/durum-ozet?sorumluOldugum=true').then(r => { this.durumOzetSorumlu = Array.isArray(r.data) ? r.data : []; })
+        ]).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
     },
     methods: {
         formatDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('tr-TR'); }

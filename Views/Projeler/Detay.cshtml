@@ -2,7 +2,53 @@
     Layout = "_AdminLayout";
     var projeId = ViewData["ProjeId"] as int? ?? 0;
 }
-<div id="proje-detay-app" data-proje-id="@projeId" v-cloak>
+<style>
+    /* Adım Düzenle modal - Durum bölümü belirgin */
+    #proje-detay-app #adimModal .adim-modal-durum-wrap {
+        background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
+        border: 1px solid #99f6e4;
+        border-radius: 10px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1rem;
+    }
+    #proje-detay-app #adimModal .adim-modal-durum-wrap .form-label {
+        font-weight: 700;
+        color: #0f766e;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+    #proje-detay-app #adimModal .adim-modal-durum-wrap .form-select {
+        font-weight: 500;
+        border-radius: 8px;
+        border: 1px solid #5eead4;
+        background: #fff;
+    }
+    /* Adımların duruma göre dağılımı - adet badge renkleri (durum id’ye göre) */
+    #proje-detay-app .durum-ozet-pill .durum-ozet-adet.durum-adet-1 { background: #f59e0b !important; color: #fff; }
+    #proje-detay-app .durum-ozet-pill .durum-ozet-adet.durum-adet-2 { background: #64748b !important; color: #fff; }
+    #proje-detay-app .durum-ozet-pill .durum-ozet-adet.durum-adet-3 { background: #0d9488 !important; color: #fff; }
+    #proje-detay-app .durum-ozet-pill .durum-ozet-adet.durum-adet-4 { background: #dc2626 !important; color: #fff; }
+    #proje-detay-app .durum-ozet-pill .durum-ozet-adet.durum-adet-5 { background: #16a34a !important; color: #fff; }
+    /* Adım listesinde durum badge’leri – aynı renkler */
+    #proje-detay-app .badge.durum-badge-1 { background: #f59e0b !important; color: #fff; }
+    #proje-detay-app .badge.durum-badge-2 { background: #64748b !important; color: #fff; }
+    #proje-detay-app .badge.durum-badge-3 { background: #0d9488 !important; color: #fff; }
+    #proje-detay-app .badge.durum-badge-4 { background: #dc2626 !important; color: #fff; }
+    #proje-detay-app .badge.durum-badge-5 { background: #16a34a !important; color: #fff; }
+    /* Açıklama var - yanıp sönen metin */
+    #proje-detay-app .aciklama-var-blink {
+        animation: aciklama-blink 1.2s ease-in-out infinite;
+        color: #0d9488;
+        font-weight: 500;
+        text-decoration: none;
+    }
+    #proje-detay-app .aciklama-var-blink:hover { color: #0f766e; text-decoration: underline; }
+    @@keyframes aciklama-blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.45; }
+    }
+</style>
+<div id="proje-detay-app" data-vue-page data-proje-id="@projeId" v-cloak>
     <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
         <div class="w-100 text-center">
             <div class="small text-muted mb-2">Yükleniyor...</div>
@@ -27,7 +73,17 @@
         <div class="progress mb-2" style="height:10px"><div class="progress-bar" :style="{width: proje.progressYuzde + '%'}"></div></div>
         <p v-if="proje.aciklama" class="text-muted mb-0">{{ proje.aciklama }}</p>
         <div class="mt-2 small text-muted">
-            Başlangıç: {{ formatDate(proje.baslangicTarihi) }} | Planlanan Bitiş: {{ formatDate(proje.planlananBitisTarihi) }} | Sorumlu: {{ proje.sorumluAdSoyad || '-' }}
+            Başlangıç: {{ formatDate(proje.baslangicTarihi) }} | Planlanan Bitiş: {{ formatDate(proje.planlananBitisTarihi) }} | Sorumlu: {{ proje.sorumluAdSoyad || '-' }} | Kaydeden: {{ proje.olusturanAdSoyad || '-' }}
+        </div>
+        <div class="mt-2 small text-muted">
+            <span class="fw-medium">Paylaşılan Kişiler:</span>
+            <span v-if="proje.yetkiTipi === 0"> Tüm Kullanıcılar</span>
+            <template v-else-if="proje.yetkiTipi === 1 && paylasilanKisilerMetinleri.length">
+                <div class="mt-1 ms-2">
+                    <div v-for="(metin, i) in paylasilanKisilerMetinleri" :key="i">{{ metin }}</div>
+                </div>
+            </template>
+            <span v-else-if="proje.yetkiTipi === 1" class="fst-italic"> Seçili kişi yok</span>
         </div>
     </div>
 
@@ -37,7 +93,7 @@
             <div class="d-flex flex-wrap gap-2 align-items-center">
                 <div v-for="s in durumOzeti" :key="s.id" class="durum-ozet-pill">
                     <span class="durum-ozet-ad">{{ s.ad }}</span>
-                    <span class="durum-ozet-adet">{{ s.adet }}</span>
+                    <span class="durum-ozet-adet" :class="'durum-adet-' + s.id">{{ s.adet }}</span>
                 </div>
             </div>
         </div>
@@ -46,7 +102,8 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div class="d-flex align-items-center gap-2">
-                <button type="button" class="btn btn-outline-primary btn-sm" :disabled="seciliDetayIds.length === 0" @@click="durumGuncelleModalAc()">Durum Güncelle</button>
+                <button type="button" class="btn btn-outline-primary btn-sm" :disabled="seciliDetayIds.length === 0" @@click="durumGuncelleModalAc()">Toplu Durum Güncelle</button>
+                <button type="button" class="btn btn-outline-primary btn-sm" :disabled="seciliDetayIds.length === 0" @@click="sorumluGuncelleModalAc()">Toplu Sorumlu Güncelle</button>
                 <button class="btn btn-primary btn-sm" @@click="adimModalAc()"><i class="fas fa-plus me-1"></i> Adım Ekle</button>
             </div>
             <span v-if="seciliDetayIds.length > 0" class="small text-muted">{{ seciliDetayIds.length }} adım seçili</span>
@@ -57,12 +114,19 @@
                     <input type="checkbox" :value="d.id" v-model="seciliDetayIds" class="form-check-input" />
                     <span class="badge bg-light text-dark">{{ d.kategoriAd || '-' }}</span>
                     <strong>{{ d.adimAdi }}</strong>
-                    <span class="badge bg-secondary">{{ d.durumAd }}</span>
+                    <span class="badge" :class="'durum-badge-' + d.durumId">{{ d.durumAd }}</span>
                     <span v-if="d.sorumluAdSoyad" class="small text-muted">({{ d.sorumluAdSoyad }})</span>
                     <a href="#" @@click.prevent="yorumAc(d)" class="ms-2" title="Yorumlar"><i class="fas fa-comment" :class="{ 'text-primary': d.yorumSayisi > 0 }"></i> <span v-if="d.yorumSayisi">{{ d.yorumSayisi }}</span></a>
+                    <a v-if="d.aciklama && d.aciklama.trim()" href="#" @@click.prevent="aciklamaGoster(d)" class="aciklama-var-blink ms-1 small" title="Açıklamayı göster">açıklama var!</a>
                 </div>
                 <div class="d-flex flex-wrap gap-2">
-                    <button class="btn btn-sm btn-outline-secondary" @@click="adimDuzenle(d)">Düzenle</button>
+                    <div class="dropdown" data-bs-popper-config='{"strategy":"fixed"}'>
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">İşlemler</button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" @@click.prevent="adimDuzenle(d)"><i class="fas fa-edit me-1"></i> Düzenle</a></li>
+                            <li v-if="adimSilinebilir(d)"><a class="dropdown-item text-danger" href="#" @@click.prevent="adimSil(d)"><i class="fas fa-trash me-1"></i> Sil</a></li>
+                        </ul>
+                    </div>
                 </div>
             </li>
             <li v-if="!proje.detaylar || proje.detaylar.length === 0" class="list-group-item text-muted">Henüz adım yok. "Adım Ekle" ile ekleyin.</li>
@@ -78,13 +142,31 @@
         <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button><button type="button" class="btn btn-primary" @@click="topluDurumGuncelle">Seçilen Kayıtları Güncelle</button></div>
     </div></div></div>
 
+    <div class="modal fade" id="sorumluGuncelleModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Toplu Sorumlu Güncelle</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <p class="text-muted small">Seçilen {{ seciliDetayIds.length }} adımın sorumlu kişisini güncelleyin.</p>
+            <div class="mb-2"><label class="form-label">Sorumlu Kişi</label><select v-model="topluSorumluKullaniciId" class="form-select"><option :value="null">Seçiniz</option><option v-for="k in kullanicilar" :key="k.id" :value="k.id">{{ k.adSoyad }} - {{ k.cepTel || '-' }}</option></select></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button><button type="button" class="btn btn-primary" @@click="topluSorumluGuncelle">Seçilen Kayıtları Güncelle</button></div>
+    </div></div></div>
+
+    <div class="modal fade" id="aciklamaModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Açıklama - {{ seciliAciklamaDetay?.adimAdi }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><p class="mb-0" style="white-space: pre-wrap;">{{ seciliAciklamaDetay?.aciklama }}</p></div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button></div>
+    </div></div></div>
+
     <div class="modal fade" id="adimModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
         <div class="modal-header"><h5 class="modal-title">{{ adimModalId ? 'Adım Düzenle' : 'Yeni Adım' }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
             <div class="mb-2"><label class="form-label">Adım Adı</label><input v-model="adimForm.adimAdi" class="form-control" /></div>
             <div class="mb-2"><label class="form-label">Kategori</label><select v-model="adimForm.kategoriId" class="form-select"><option :value="null">Seçiniz</option><option v-for="k in kategoriler" :key="k.id" :value="k.id">{{ k.ad }}</option></select></div>
-            <div class="mb-2" v-if="durumlar.length"><label class="form-label">Durum</label><select v-model="adimForm.durumId" class="form-select"><option v-for="s in durumlar" :key="s.id" :value="s.id">{{ s.ad }}</option></select></div>
-            <div class="mb-2"><label class="form-label">Sorumlu</label><select v-model="adimForm.sorumluKullaniciId" class="form-select"><option :value="null">Seçiniz</option><option v-for="k in kullanicilar" :key="k.id" :value="k.id">{{ k.adSoyad }}</option></select></div>
+            <div class="adim-modal-durum-wrap" v-if="durumlar.length">
+                <label class="form-label"><i class="fas fa-flag me-1"></i> Durum</label>
+                <select v-model="adimForm.durumId" class="form-select"><option v-for="s in durumlar" :key="s.id" :value="s.id">{{ s.ad }}</option></select>
+            </div>
+            <div class="mb-2"><label class="form-label">Sorumlu</label><select v-model="adimForm.sorumluKullaniciId" class="form-select"><option :value="null">Seçiniz</option><option v-for="k in kullanicilar" :key="k.id" :value="k.id">{{ k.adSoyad }} - {{ k.cepTel || '-' }}</option></select></div>
             <div><label class="form-label">Açıklama</label><textarea v-model="adimForm.aciklama" class="form-control" rows="2"></textarea></div>
         </div>
         <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button><button type="button" class="btn btn-primary" @@click="adimKaydet">Kaydet</button></div>
@@ -129,9 +211,11 @@ createApp({
             kullanicilar: [],
             seciliDetayIds: [],
             topluDurumId: null,
+            topluSorumluKullaniciId: null,
             adimModalId: null,
             adimForm: { adimAdi: '', kategoriId: null, durumId: null, sorumluKullaniciId: null, aciklama: '' },
             seciliDetay: null,
+            seciliAciklamaDetay: null,
             yorumlar: [],
             yeniYorum: '',
             yorumSecilenDosyaAdlari: []
@@ -149,25 +233,46 @@ createApp({
                 ad: s.ad,
                 adet: this.proje.detaylar.filter(d => d.durumId === s.id).length
             }));
+        },
+        paylasilanKisilerMetinleri() {
+            if (!this.proje || this.proje.yetkiTipi !== 1 || !Array.isArray(this.proje.yetkiKullaniciIds)) return [];
+            return this.proje.yetkiKullaniciIds.map(function(id) {
+                var k = this.kullanicilar.find(function(x) { return x.id === id; });
+                return k ? (k.adSoyad + ' - ' + (k.cepTel || '-')) : '';
+            }.bind(this)).filter(Boolean);
         }
     },
     mounted() {
-        this.yukle();
-        axios.get('/api/Parametre/durumlar').then(r => { this.durumlar = r.data; });
-        axios.get('/api/Parametre/kategoriler').then(r => { this.kategoriler = r.data; });
-        axios.get('/api/Kullanicilar').then(r => { this.kullanicilar = r.data; });
+        Promise.all([
+            axios.get('/api/Projeler/' + projeId).then(r => { this.proje = r.data; }),
+            axios.get('/api/Parametre/durumlar').then(r => { this.durumlar = r.data; }),
+            axios.get('/api/Parametre/kategoriler').then(r => { this.kategoriler = r.data; }),
+            axios.get('/api/Kullanicilar').then(r => { this.kullanicilar = r.data; })
+        ]).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
     },
     methods: {
-        yukle() { axios.get('/api/Projeler/' + projeId).then(r => { this.proje = r.data; }); },
+        yukle() { return axios.get('/api/Projeler/' + projeId).then(r => { this.proje = r.data; }); },
         formatDate(d) { if (!d) return '-'; return new Date(d).toLocaleString('tr-TR'); },
-        adimModalAc() { this.adimModalId = null; this.adimForm = { adimAdi: '', kategoriId: null, durumId: this.durumlar[0]?.id ?? null, sorumluKullaniciId: null, aciklama: '' }; new bootstrap.Modal(document.getElementById('adimModal')).show(); },
+        adimModalAc() { var islemBekliyor = this.durumlar.find(function(s) { return s.ad === 'İşlem Bekliyor'; }); this.adimModalId = null; this.adimForm = { adimAdi: '', kategoriId: null, durumId: (islemBekliyor && islemBekliyor.id) || (this.durumlar[0] && this.durumlar[0].id) || null, sorumluKullaniciId: null, aciklama: '' }; new bootstrap.Modal(document.getElementById('adimModal')).show(); },
         adimDuzenle(d) { this.adimModalId = d.id; this.adimForm = { adimAdi: d.adimAdi, kategoriId: d.kategoriId, durumId: d.durumId, sorumluKullaniciId: d.sorumluKullaniciId, aciklama: d.aciklama || '' }; new bootstrap.Modal(document.getElementById('adimModal')).show(); },
         adimKaydet() {
+            if (window.setPageLoading) window.setPageLoading(true);
+            var modalEl = document.getElementById('adimModal');
+            var done = () => {
+                this.yukle().then(() => {
+                    if (window.setPageLoading) window.setPageLoading(false);
+                    bootstrap.Modal.getInstance(modalEl).hide();
+                }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
+            };
+            var fail = (err) => {
+                if (window.setPageLoading) window.setPageLoading(false);
+                alert(err.response?.data?.message || 'İşlem başarısız.');
+            };
             if (this.adimModalId) {
-                const det = this.proje.detaylar.find(x => x.id === this.adimModalId);
-                axios.put('/api/projeler/' + projeId + '/ProjeDetay/' + this.adimModalId, { kategoriId: this.adimForm.kategoriId, adimAdi: this.adimForm.adimAdi, durumId: this.adimForm.durumId, sorumluKullaniciId: this.adimForm.sorumluKullaniciId, aciklama: this.adimForm.aciklama || '', sira: det.sira }).then(() => { this.yukle(); bootstrap.Modal.getInstance(document.getElementById('adimModal')).hide(); });
+                var det = this.proje.detaylar.find(x => x.id === this.adimModalId);
+                axios.put('/api/projeler/' + projeId + '/ProjeDetay/' + this.adimModalId, { kategoriId: this.adimForm.kategoriId, adimAdi: this.adimForm.adimAdi, durumId: this.adimForm.durumId, sorumluKullaniciId: this.adimForm.sorumluKullaniciId, aciklama: this.adimForm.aciklama || '', sira: det.sira }).then(() => done()).catch(fail);
             } else {
-                axios.post('/api/projeler/' + projeId + '/ProjeDetay', { adimAdi: this.adimForm.adimAdi, kategoriId: this.adimForm.kategoriId, sorumluKullaniciId: this.adimForm.sorumluKullaniciId, aciklama: this.adimForm.aciklama }).then(() => { this.yukle(); bootstrap.Modal.getInstance(document.getElementById('adimModal')).hide(); });
+                axios.post('/api/projeler/' + projeId + '/ProjeDetay', { adimAdi: this.adimForm.adimAdi, kategoriId: this.adimForm.kategoriId, durumId: this.adimForm.durumId, sorumluKullaniciId: this.adimForm.sorumluKullaniciId, aciklama: this.adimForm.aciklama }).then(() => done()).catch(fail);
             }
         },
         durumGuncelleModalAc() {
@@ -181,6 +286,39 @@ createApp({
                 this.seciliDetayIds = [];
                 bootstrap.Modal.getInstance(document.getElementById('durumGuncelleModal')).hide();
             }).catch(err => { alert(err.response?.data?.message || 'Güncellenemedi.'); });
+        },
+        sorumluGuncelleModalAc() {
+            if (this.seciliDetayIds.length === 0) return;
+            this.topluSorumluKullaniciId = null;
+            new bootstrap.Modal(document.getElementById('sorumluGuncelleModal')).show();
+        },
+        topluSorumluGuncelle() {
+            axios.put('/api/projeler/' + projeId + '/ProjeDetay/sorumlu-guncelle', { detayIds: this.seciliDetayIds, sorumluKullaniciId: this.topluSorumluKullaniciId }).then(() => {
+                this.yukle();
+                this.seciliDetayIds = [];
+                bootstrap.Modal.getInstance(document.getElementById('sorumluGuncelleModal')).hide();
+            }).catch(err => { alert(err.response?.data?.message || 'Güncellenemedi.'); });
+        },
+        adimSilinebilir(d) {
+            if (!this.proje || this.proje.meKullaniciId == null) return false;
+            var projeOlusturanBen = this.proje.olusturanKullaniciId === this.proje.meKullaniciId;
+            var genelYetkili = this.proje.meGenelYetkiliMi === true;
+            if (projeOlusturanBen && genelYetkili) return true;
+            return (d.insertedByUserId != null && d.insertedByUserId === this.proje.meKullaniciId);
+        },
+        aciklamaGoster(d) {
+            this.seciliAciklamaDetay = d;
+            new bootstrap.Modal(document.getElementById('aciklamaModal')).show();
+        },
+        adimSil(d) {
+            if (!confirm('"' + (d.adimAdi || 'Bu adım') + '" adımını silmek istediğinize emin misiniz?')) return;
+            if (window.setPageLoading) window.setPageLoading(true);
+            axios.delete('/api/projeler/' + projeId + '/ProjeDetay/' + d.id).then(() => {
+                this.yukle().then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
+            }).catch(err => {
+                if (window.setPageLoading) window.setPageLoading(false);
+                alert(err.response?.data?.message || 'Silme işlemi başarısız.');
+            });
         },
         yorumAc(d) {
             this.seciliDetay = d;

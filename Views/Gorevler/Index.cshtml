@@ -1,7 +1,49 @@
 @{
     Layout = "_AdminLayout";
 }
-<div id="gorevler-app" v-cloak>
+<style>
+    .gorevler-stats-section { margin-bottom: 2rem; }
+    .gorevler-stats-section .section-title { font-size: 0.8125rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.75rem; }
+    .gorevler-stats-section.sorumlu-section .section-title { color: #0d9488; }
+    /* Durum kartları: ikon | durum adı | adet (yatay, kompakt) */
+    .gorevler-stats-section .stat-card {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.65rem 1rem;
+        min-height: auto;
+    }
+    .gorevler-stats-section .stat-card-icon {
+        width: 38px;
+        height: 38px;
+        font-size: 1rem;
+        margin-bottom: 0;
+        flex-shrink: 0;
+    }
+    .gorevler-stats-section .stat-card:hover .stat-card-icon { transform: none; }
+    .gorevler-stats-section .stat-card-label {
+        margin-bottom: 0;
+        flex: 1;
+        font-size: 0.8125rem;
+    }
+    .gorevler-stats-section .stat-card-value {
+        font-size: 1.15rem;
+        margin-bottom: 0 !important;
+        flex-shrink: 0;
+    }
+    .gorevler-gruplar-wrap { background: #fff; border-radius: var(--radius-lg, 14px); box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04); border: 1px solid rgba(226, 232, 240, 0.9); padding: 1.5rem; }
+    .gorevler-gruplar-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0; }
+    .gorevler-gruplar-header h2 { font-size: 1.25rem; font-weight: 600; color: #1e293b; margin: 0; }
+    .gorevler-grup-card { border-radius: var(--radius-md, 12px); border: 1px solid #e2e8f0; background: #fff; transition: box-shadow 0.2s ease, border-color 0.2s ease; height: 100%; }
+    .gorevler-grup-card:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.06); border-color: rgba(13, 148, 136, 0.25); }
+    .gorevler-grup-card .card-body { padding: 1.25rem; }
+    .gorevler-grup-card .card-title { font-size: 1rem; font-weight: 600; color: #1e293b; }
+    .gorevler-grup-card .badge { font-size: 0.7rem; font-weight: 600; }
+    .gorevler-grup-card .gorev-count { font-size: 0.8125rem; color: #64748b; margin-bottom: 0.75rem; }
+    .gorevler-grup-card .btn { font-weight: 500; }
+</style>
+<div id="gorevler-app" data-vue-page v-cloak>
     <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
         <div class="w-100 text-center">
             <div class="small text-muted mb-2">Yükleniyor...</div>
@@ -11,63 +53,103 @@
         </div>
     </div>
     <div class="v-cloak-hidden">
-    <h6 class="mb-3 text-muted fw-semibold">Toplam aktif görev adetleri</h6>
-    <div class="row g-3 mb-3">
-        <div class="col-md-4">
-            <div class="stat-card">
-                <div class="stat-card-icon warning"><i class="fas fa-clock"></i></div>
-                <div class="stat-card-label small text-muted">İşlem Bekliyor</div>
-                <div class="stat-card-value h4 mb-0">{{ islemBekliyorSayi }}</div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="stat-card">
-                <div class="stat-card-icon secondary"><i class="fas fa-pause-circle"></i></div>
-                <div class="stat-card-label small text-muted">Beklemede</div>
-                <div class="stat-card-value h4 mb-0">{{ beklemedeSayi }}</div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="stat-card">
-                <div class="stat-card-icon primary"><i class="fas fa-play-circle"></i></div>
-                <div class="stat-card-label small text-muted">İşleme Alındı</div>
-                <div class="stat-card-value h4 mb-0">{{ islemeAlindiSayi }}</div>
-            </div>
-        </div>
-    </div>
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Görev Grupları</h5>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#grupModal"><i class="fas fa-plus me-1"></i> Yeni Görev Grubu</button>
-    </div>
-    <div class="row g-3" v-if="gruplar.length">
-        <div v-for="g in gruplar" :key="g.id" class="col-md-6 col-lg-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h6 class="card-title mb-0">{{ g.ad }}</h6>
-                        <span v-if="g.benimGrubum" class="badge bg-primary">Benim grubum</span>
+        <div class="gorevler-stats-section sorumlu-section">
+            <div class="section-title"><i class="fas fa-user-check me-1"></i> Sorumlusu olduğum aktif görev adetleri</div>
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon warning"><i class="fas fa-clock"></i></div>
+                        <div class="stat-card-label small text-muted">İşlem Bekliyor</div>
+                        <div class="stat-card-value">{{ sorumluIslemBekliyorSayi }}</div>
                     </div>
-                    <p v-if="g.aciklama" class="small text-muted mb-2">{{ g.aciklama }}</p>
-                    <div class="small text-muted mb-2">{{ g.gorevSayisi }} görev</div>
-                    <a :href="'/Gorevler/GrupDetay/' + g.id" class="btn btn-outline-primary btn-sm">Grup detay</a>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon secondary"><i class="fas fa-pause-circle"></i></div>
+                        <div class="stat-card-label small text-muted">Beklemede</div>
+                        <div class="stat-card-value">{{ sorumluBeklemedeSayi }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon primary"><i class="fas fa-play-circle"></i></div>
+                        <div class="stat-card-label small text-muted">İşleme Alındı</div>
+                        <div class="stat-card-value">{{ sorumluIslemeAlindiSayi }}</div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    <div v-else class="alert alert-info">Henüz görev grubu yok. "Yeni Görev Grubu" ile oluşturun, sonra gruba tıklayıp görev ekleyin.</div>
 
-    <div class="modal fade" id="grupModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title">Yeni Görev Grubu</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body">
-                    <div class="mb-2"><label class="form-label">Grup Adı *</label><input v-model="grupForm.ad" class="form-control" placeholder="Örn: Sprint 1" /></div>
-                    <div class="mb-2"><label class="form-label">Açıklama</label><textarea v-model="grupForm.aciklama" class="form-control" rows="2" placeholder="İsteğe bağlı"></textarea></div>
+        <div class="gorevler-stats-section">
+            <div class="section-title"><i class="fas fa-chart-pie me-1"></i> Toplam aktif görev adetleri</div>
+            <div class="row g-2 mb-4">
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon warning"><i class="fas fa-clock"></i></div>
+                        <div class="stat-card-label small text-muted">İşlem Bekliyor</div>
+                        <div class="stat-card-value">{{ islemBekliyorSayi }}</div>
+                    </div>
                 </div>
-                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button><button type="button" class="btn btn-primary" @@click="grupKaydet">Kaydet</button></div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon secondary"><i class="fas fa-pause-circle"></i></div>
+                        <div class="stat-card-label small text-muted">Beklemede</div>
+                        <div class="stat-card-value">{{ beklemedeSayi }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon primary"><i class="fas fa-play-circle"></i></div>
+                        <div class="stat-card-label small text-muted">İşleme Alındı</div>
+                        <div class="stat-card-value">{{ islemeAlindiSayi }}</div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
+
+        <div class="gorevler-gruplar-wrap">
+            <div class="gorevler-gruplar-header">
+                <h2>Görev Grupları</h2>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#grupModal"><i class="fas fa-plus me-1"></i> Yeni Görev Grubu</button>
+            </div>
+            <div class="row g-3" v-if="gruplar.length">
+                <div v-for="g in gruplar" :key="g.id" class="col-md-6 col-lg-4">
+                    <div class="card gorevler-grup-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="card-title mb-0">{{ g.ad }}</h6>
+                                <div class="d-flex align-items-center gap-1">
+                                    <span v-if="g.benimGrubum" class="badge bg-primary">Benim grubum</span>
+                                    <div v-if="g.benimGrubum || genelYetkiliMi" class="dropdown">
+                                        <button type="button" class="btn btn-sm btn-link text-secondary p-0 border-0" data-bs-toggle="dropdown" aria-label="İşlemler" @@click.prevent><i class="fas fa-cog"></i></button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item text-danger" href="#" @@click.prevent="grupSil(g)"><i class="fas fa-trash me-1"></i> Sil</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <p v-if="g.aciklama" class="small text-muted mb-2">{{ g.aciklama }}</p>
+                            <div class="gorev-count">{{ g.gorevSayisi }} görev</div>
+                            <a :href="'/Gorevler/GrupDetay/' + g.id" class="btn btn-outline-primary btn-sm">Grup detay</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div v-else class="alert alert-light border text-muted mb-0">Henüz görev grubu yok. "Yeni Görev Grubu" ile oluşturun, sonra gruba tıklayıp görev ekleyin.</div>
+        </div>
+
+        <div class="modal fade" id="grupModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">Yeni Görev Grubu</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-body">
+                        <div class="mb-2"><label class="form-label">Grup Adı *</label><input v-model="grupForm.ad" class="form-control" placeholder="Örn: Sprint 1" /></div>
+                        <div class="mb-2"><label class="form-label">Açıklama</label><textarea v-model="grupForm.aciklama" class="form-control" rows="2" placeholder="İsteğe bağlı"></textarea></div>
+                    </div>
+                    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button><button type="button" class="btn btn-primary" @@click="grupKaydet">Kaydet</button></div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 @section Scripts {
@@ -77,13 +159,17 @@ createApp({
     data() {
         return {
             gruplar: [],
+            genelYetkiliMi: false,
             grupForm: { ad: '', aciklama: '' },
-            durumOzet: []
+            durumOzet: [],
+            durumOzetSorumlu: []
         };
     },
     mounted() {
-        this.yukle();
-        this.yukleDurumOzet();
+        const p1 = this.yukle();
+        const p2 = this.yukleDurumOzet();
+        const p3 = this.yukleDurumOzetSorumlu();
+        Promise.all([p1, p2, p3]).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
     },
     computed: {
         islemBekliyorSayi() {
@@ -97,24 +183,50 @@ createApp({
         islemeAlindiSayi() {
             const kayit = this.durumOzet.find(x => x.durumAd === 'İşleme Alındı');
             return kayit ? kayit.adet : 0;
+        },
+        sorumluIslemBekliyorSayi() {
+            const kayit = this.durumOzetSorumlu.find(x => x.durumAd === 'İşlem Bekliyor');
+            return kayit ? kayit.adet : 0;
+        },
+        sorumluBeklemedeSayi() {
+            const kayit = this.durumOzetSorumlu.find(x => x.durumAd === 'Beklemede');
+            return kayit ? kayit.adet : 0;
+        },
+        sorumluIslemeAlindiSayi() {
+            const kayit = this.durumOzetSorumlu.find(x => x.durumAd === 'İşleme Alındı');
+            return kayit ? kayit.adet : 0;
         }
     },
     methods: {
         yukle() {
-            axios.get('/api/GorevGrubu').then(r => { this.gruplar = r.data; });
+            return axios.get('/api/GorevGrubu').then(r => {
+                if (r.data && typeof r.data.list !== 'undefined') { this.gruplar = r.data.list; this.genelYetkiliMi = !!r.data.genelYetkiliMi; }
+                else { this.gruplar = Array.isArray(r.data) ? r.data : []; }
+            });
+        },
+        grupSil(g) {
+            if (!confirm('"' + (g.ad || 'Bu grup') + '" görev grubunu silmek istediğinize emin misiniz? Gruba ait görevler silinmez, sadece grup kaldırılır.')) return;
+            if (window.setPageLoading) window.setPageLoading(true);
+            axios.delete('/api/GorevGrubu/' + g.id).then(() => this.yukle()).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(err => { if (window.setPageLoading) window.setPageLoading(false); alert(err.response?.data?.message || 'Silme işlemi başarısız.'); });
         },
         yukleDurumOzet() {
-            axios.get('/api/Gorevler/durum-ozet').then(r => {
+            return axios.get('/api/Gorevler/durum-ozet').then(r => {
                 this.durumOzet = Array.isArray(r.data) ? r.data : [];
+            }).catch(e => console.error(e));
+        },
+        yukleDurumOzetSorumlu() {
+            return axios.get('/api/Gorevler/durum-ozet?sorumluOldugum=true').then(r => {
+                this.durumOzetSorumlu = Array.isArray(r.data) ? r.data : [];
             }).catch(e => console.error(e));
         },
         grupKaydet() {
             if (!this.grupForm.ad.trim()) return;
-            axios.post('/api/GorevGrubu', { ad: this.grupForm.ad.trim(), aciklama: this.grupForm.aciklama || null }).then(() => {
-                this.yukle();
+            if (window.setPageLoading) window.setPageLoading(true);
+            axios.post('/api/GorevGrubu', { ad: this.grupForm.ad.trim(), aciklama: this.grupForm.aciklama || null }).then(() => this.yukle()).then(() => {
                 this.grupForm = { ad: '', aciklama: '' };
                 bootstrap.Modal.getInstance(document.getElementById('grupModal')).hide();
-            });
+                if (window.setPageLoading) window.setPageLoading(false);
+            }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
         }
     }
 }).mount('#gorevler-app');

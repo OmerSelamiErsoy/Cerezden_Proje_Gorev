@@ -1,7 +1,7 @@
 @{
     Layout = "_AdminLayout";
 }
-<div id="parametre-app" v-cloak>
+<div id="parametre-app" data-vue-page v-cloak>
     <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
         <div class="w-100 text-center">
             <div class="small text-muted mb-2">Yükleniyor...</div>
@@ -75,34 +75,40 @@ createApp({
         };
     },
     mounted() {
-        this.durumYukle();
-        this.kategoriYukle();
+        Promise.all([
+            axios.get('/api/Parametre/durumlar').then(r => { this.durumlar = r.data; }),
+            axios.get('/api/Parametre/kategoriler').then(r => { this.kategoriler = r.data; })
+        ]).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
     },
     methods: {
-        durumYukle() { axios.get('/api/Parametre/durumlar').then(r => { this.durumlar = r.data; }); },
-        kategoriYukle() { axios.get('/api/Parametre/kategoriler').then(r => { this.kategoriler = r.data; }); },
+        durumYukle() { return axios.get('/api/Parametre/durumlar').then(r => { this.durumlar = r.data; }); },
+        kategoriYukle() { return axios.get('/api/Parametre/kategoriler').then(r => { this.kategoriler = r.data; }); },
         durumEkle() { this.durumForm = { id: null, ad: '', sira: this.durumlar.length + 1 }; new bootstrap.Modal(document.getElementById('durumModal')).show(); },
         durumDuzenle(d) { this.durumForm = { id: d.id, ad: d.ad, sira: d.sira }; new bootstrap.Modal(document.getElementById('durumModal')).show(); },
         durumKaydet() {
             var payload = { ad: this.durumForm.ad || '', sira: this.durumForm.sira || 0 };
-            if (this.durumForm.id) {
-                axios.put('/api/Parametre/durumlar/' + this.durumForm.id, payload).then(() => { this.durumYukle(); bootstrap.Modal.getInstance(document.getElementById('durumModal')).hide(); }).catch(err => { alert(err.response?.data?.message || 'Kayıt güncellenemedi.'); });
-            } else {
-                axios.post('/api/Parametre/durumlar', payload).then(() => { this.durumYukle(); bootstrap.Modal.getInstance(document.getElementById('durumModal')).hide(); }).catch(err => { alert(err.response?.data?.message || 'Kayıt eklenemedi.'); });
-            }
+            if (window.setPageLoading) window.setPageLoading(true);
+            var p = this.durumForm.id ? axios.put('/api/Parametre/durumlar/' + this.durumForm.id, payload) : axios.post('/api/Parametre/durumlar', payload);
+            p.then(() => this.durumYukle()).then(() => { bootstrap.Modal.getInstance(document.getElementById('durumModal')).hide(); if (window.setPageLoading) window.setPageLoading(false); }).catch(err => { if (window.setPageLoading) window.setPageLoading(false); alert(err.response?.data?.message || 'Kayıt işlemi başarısız.'); });
         },
-        durumSil(id) { if (confirm('Silinsin mi?')) axios.delete('/api/Parametre/durumlar/' + id).then(() => this.durumYukle()); },
+        durumSil(id) {
+            if (!confirm('Silinsin mi?')) return;
+            if (window.setPageLoading) window.setPageLoading(true);
+            axios.delete('/api/Parametre/durumlar/' + id).then(() => this.durumYukle()).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
+        },
         kategoriEkle() { this.kategoriForm = { id: null, ad: '', sira: this.kategoriler.length + 1 }; new bootstrap.Modal(document.getElementById('kategoriModal')).show(); },
         kategoriDuzenle(k) { this.kategoriForm = { id: k.id, ad: k.ad, sira: k.sira }; new bootstrap.Modal(document.getElementById('kategoriModal')).show(); },
         kategoriKaydet() {
             var payload = { ad: this.kategoriForm.ad || '', sira: this.kategoriForm.sira || 0 };
-            if (this.kategoriForm.id) {
-                axios.put('/api/Parametre/kategoriler/' + this.kategoriForm.id, payload).then(() => { this.kategoriYukle(); bootstrap.Modal.getInstance(document.getElementById('kategoriModal')).hide(); }).catch(err => { alert(err.response?.data?.message || 'Kayıt güncellenemedi.'); });
-            } else {
-                axios.post('/api/Parametre/kategoriler', payload).then(() => { this.kategoriYukle(); bootstrap.Modal.getInstance(document.getElementById('kategoriModal')).hide(); }).catch(err => { alert(err.response?.data?.message || 'Kayıt eklenemedi.'); });
-            }
+            if (window.setPageLoading) window.setPageLoading(true);
+            var p = this.kategoriForm.id ? axios.put('/api/Parametre/kategoriler/' + this.kategoriForm.id, payload) : axios.post('/api/Parametre/kategoriler', payload);
+            p.then(() => this.kategoriYukle()).then(() => { bootstrap.Modal.getInstance(document.getElementById('kategoriModal')).hide(); if (window.setPageLoading) window.setPageLoading(false); }).catch(err => { if (window.setPageLoading) window.setPageLoading(false); alert(err.response?.data?.message || 'Kayıt işlemi başarısız.'); });
         },
-        kategoriSil(id) { if (confirm('Silinsin mi?')) axios.delete('/api/Parametre/kategoriler/' + id).then(() => this.kategoriYukle()); }
+        kategoriSil(id) {
+            if (!confirm('Silinsin mi?')) return;
+            if (window.setPageLoading) window.setPageLoading(true);
+            axios.delete('/api/Parametre/kategoriler/' + id).then(() => this.kategoriYukle()).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
+        }
     }
 }).mount('#parametre-app');
 </script>

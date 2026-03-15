@@ -13,11 +13,13 @@ public class GorevGrubuController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
     private readonly ICurrentUserService _currentUser;
+    private readonly IYetkiService _yetki;
 
-    public GorevGrubuController(ApplicationDbContext db, ICurrentUserService currentUser)
+    public GorevGrubuController(ApplicationDbContext db, ICurrentUserService currentUser, IYetkiService yetki)
     {
         _db = db;
         _currentUser = currentUser;
+        _yetki = yetki;
     }
 
     /// <summary>
@@ -28,25 +30,28 @@ public class GorevGrubuController : ControllerBase
     {
         var userId = _currentUser.GetCurrentUserId();
         var benimGruplarim = await _db.GorevGruplar
+            .AsNoTracking()
             .Where(g => g.OlusturanKullaniciId == userId)
             .Select(g => new { g.Id, g.Ad, g.Aciklama })
             .ToListAsync(ct);
-        var atananGorevIds = await _db.GorevAtamalar.Where(a => a.KullaniciId == userId).Select(a => a.GorevId).ToListAsync(ct);
+        var atananGorevIds = await _db.GorevAtamalar.AsNoTracking().Where(a => a.KullaniciId == userId).Select(a => a.GorevId).ToListAsync(ct);
         var banaAtananGorevlerinGrupIds = await _db.Gorevler
+            .AsNoTracking()
             .Where(g => atananGorevIds.Contains(g.Id) && g.GorevGrubuId != null)
             .Select(g => g.GorevGrubuId!.Value)
             .Distinct()
             .ToListAsync(ct);
         var digerGruplar = await _db.GorevGruplar
+            .AsNoTracking()
             .Where(g => banaAtananGorevlerinGrupIds.Contains(g.Id) && g.OlusturanKullaniciId != userId)
             .Select(g => new { g.Id, g.Ad, g.Aciklama })
             .ToListAsync(ct);
 
         var tumGrupIds = benimGruplarim.Select(x => x.Id).Union(digerGruplar.Select(x => x.Id)).Distinct().ToList();
-        // Sadece benim eklediğim veya bana atanan görevlerin sayısı (atananGorevIds zaten yukarıda yüklendi)
-        var benimOlusturdugumGorevIds = await _db.Gorevler.Where(g => g.OlusturanKullaniciId == userId).Select(g => g.Id).ToListAsync(ct);
+        var benimOlusturdugumGorevIds = await _db.Gorevler.AsNoTracking().Where(g => g.OlusturanKullaniciId == userId).Select(g => g.Id).ToListAsync(ct);
         var benimGorevIds = benimOlusturdugumGorevIds.Union(atananGorevIds).Distinct().ToList();
         var gorevSayilari = await _db.Gorevler
+            .AsNoTracking()
             .Where(g => g.GorevGrubuId != null && tumGrupIds.Contains(g.GorevGrubuId!.Value) && benimGorevIds.Contains(g.Id))
             .GroupBy(g => g.GorevGrubuId!.Value)
             .Select(x => new { GrupId = x.Key, Sayi = x.Count() })
@@ -61,7 +66,8 @@ public class GorevGrubuController : ControllerBase
             if (result.Any(x => x.Id == g.Id)) continue;
             result.Add(new GorevGrubuListDto { Id = g.Id, Ad = g.Ad, Aciklama = g.Aciklama, GorevSayisi = sayiDict.GetValueOrDefault(g.Id, 0), BenimGrubum = false });
         }
-        return Ok(result.OrderByDescending(x => x.BenimGrubum).ThenBy(x => x.Ad).ToList());
+        var list = result.OrderByDescending(x => x.BenimGrubum).ThenBy(x => x.Ad).ToList();
+        return Ok(new { list, genelYetkiliMi = _yetki.GenelYetkiliMi() });
     }
 
     [HttpGet("{id}")]
@@ -69,11 +75,12 @@ public class GorevGrubuController : ControllerBase
     {
         var userId = _currentUser.GetCurrentUserId();
         var g = await _db.GorevGruplar
+            .AsNoTracking()
             .Include(x => x.OlusturanKullanici)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (g == null) return NotFound();
         var benimGrubum = g.OlusturanKullaniciId == userId;
-        var gorevSayisi = await _db.Gorevler.CountAsync(x => x.GorevGrubuId == id, ct);
+        var gorevSayisi = await _db.Gorevler.AsNoTracking().CountAsync(x => x.GorevGrubuId == id, ct);
         return Ok(new GorevGrubuDetayDto
         {
             Id = g.Id,
@@ -112,7 +119,8 @@ public class GorevGrubuController : ControllerBase
     {
         var g = await _db.GorevGruplar.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (g == null) return NotFound();
-        if (g.OlusturanKullaniciId != _currentUser.GetCurrentUserId()) return Forbid();
+        var userId = _currentUser.GetCurrentUserId();
+        if (g.OlusturanKullaniciId != userId && !_yetki.GenelYetkiliMi()) return Forbid();
         g.IsDeleted = true;
         g.DeleteDate = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);

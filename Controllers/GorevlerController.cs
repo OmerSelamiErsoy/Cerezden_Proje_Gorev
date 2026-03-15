@@ -23,7 +23,7 @@ public class GorevlerController : Controller
     [HttpGet]
     public async Task<IActionResult> GrupDetay(int id)
     {
-        var grup = await _db.GorevGruplar.FirstOrDefaultAsync(g => g.Id == id);
+        var grup = await _db.GorevGruplar.AsNoTracking().FirstOrDefaultAsync(g => g.Id == id);
         var grupAd = grup?.Ad ?? $"Grup #{id}";
 
         ViewData["Title"] = $"Görev Grubu - {grupAd}";

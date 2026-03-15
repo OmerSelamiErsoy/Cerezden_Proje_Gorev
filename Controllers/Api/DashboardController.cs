@@ -30,11 +30,12 @@ public class DashboardController : ControllerBase
             .ToList();
 
         var userId = _currentUser.GetCurrentUserId();
-        var gorevIds = await _db.Gorevler.Where(g => g.OlusturanKullaniciId == userId).Select(g => g.Id).ToListAsync(ct);
-        var atananIds = await _db.GorevAtamalar.Where(a => a.KullaniciId == userId).Select(a => a.GorevId).ToListAsync(ct);
+        var gorevIds = await _db.Gorevler.AsNoTracking().Where(g => g.OlusturanKullaniciId == userId).Select(g => g.Id).ToListAsync(ct);
+        var atananIds = await _db.GorevAtamalar.AsNoTracking().Where(a => a.KullaniciId == userId).Select(a => a.GorevId).ToListAsync(ct);
         var tumGorevIds = gorevIds.Union(atananIds).Distinct().ToList();
 
         var gorevlerAktif = await _db.Gorevler
+            .AsNoTracking()
             .Where(g => tumGorevIds.Contains(g.Id) && g.DurumId != 4 && g.DurumId != 5)
             .Include(g => g.Durum)
             .ToListAsync(ct);
@@ -45,7 +46,7 @@ public class DashboardController : ControllerBase
             .Select(g => new GorevDurumOzetDto { DurumAd = g.Key.DurumAd, Adet = g.Count() })
             .ToList();
 
-        var gorevGrubuSayisi = await _db.GorevGruplar.CountAsync(ct);
+        var gorevGrubuSayisi = await _db.GorevGruplar.AsNoTracking().CountAsync(ct);
 
         return Ok(new DashboardDto
         {

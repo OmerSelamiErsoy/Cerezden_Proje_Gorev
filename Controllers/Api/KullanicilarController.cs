@@ -22,6 +22,7 @@ public class KullanicilarController : ControllerBase
         if (sadeceAktif == true)
             query = query.Where(k => k.AktifMi);
         var list = await query
+            .AsNoTracking()
             .OrderBy(k => k.AdSoyad)
             .Select(k => new KullaniciDto
             {
@@ -40,6 +41,7 @@ public class KullanicilarController : ControllerBase
     public async Task<ActionResult<KullaniciDto>> Get(int id, CancellationToken ct)
     {
         var k = await _db.Kullanicilar
+            .AsNoTracking()
             .Where(x => x.Id == id)
             .Select(x => new KullaniciDto
             {

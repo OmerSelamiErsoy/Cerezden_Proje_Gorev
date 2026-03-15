@@ -20,7 +20,7 @@ public class CurrentUserService : ICurrentUserService
     {
         var cerezdenId = GetCurrentCerezdenKullaniciId();
         if (cerezdenId == null) return 1;
-        var user = _db.Kullanicilar.IgnoreQueryFilters().FirstOrDefault(k => k.CerezdenKullaniciId == cerezdenId);
+        var user = _db.Kullanicilar.AsNoTracking().IgnoreQueryFilters().FirstOrDefault(k => k.CerezdenKullaniciId == cerezdenId);
         return user?.Id ?? 1;
     }
 

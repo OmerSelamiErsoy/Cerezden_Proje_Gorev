@@ -54,7 +54,8 @@ public class ProjeService : IProjeService
                 ProgressYuzde = yuzde,
                 AktifMi = p.AktifMi,
                 PlanlananBitisTarihi = p.PlanlananBitisTarihi,
-                SorumluAdSoyad = p.SorumluKullanici?.AdSoyad
+                SorumluAdSoyad = p.SorumluKullanici?.AdSoyad,
+                SilinebilirMi = genelYetkili || p.OlusturanKullaniciId == userId
             });
         }
         return result;
@@ -67,6 +68,7 @@ public class ProjeService : IProjeService
             .AsNoTracking()
             .Include(x => x.ProjeDurum)
             .Include(x => x.SorumluKullanici)
+            .Include(x => x.OlusturanKullanici)
             .Include(x => x.Detaylar!)
                 .ThenInclude(d => d.Durum)
             .Include(x => x.Detaylar!)
@@ -75,8 +77,11 @@ public class ProjeService : IProjeService
                 .ThenInclude(d => d.SorumluKullanici)
             .Include(x => x.Detaylar!)
                 .ThenInclude(d => d.Yorumlar)
+            .Include(x => x.YetkiKullanicilar)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (p == null) return null;
+        var userId = _currentUser.GetCurrentUserId();
+        var genelYetkili = _yetki.GenelYetkiliMi();
         var toplam = p.Detaylar?.Count ?? 0;
         var tamamlanan = p.Detaylar?.Count(d => d.DurumId == 4 || d.DurumId == 5) ?? 0;
         var yuzde = toplam == 0 ? 0 : (int)Math.Round(100.0 * tamamlanan / toplam);
@@ -92,8 +97,14 @@ public class ProjeService : IProjeService
             BitisTarihi = p.BitisTarihi,
             SorumluKullaniciId = p.SorumluKullaniciId,
             SorumluAdSoyad = p.SorumluKullanici?.AdSoyad,
+            OlusturanKullaniciId = p.OlusturanKullaniciId,
+            OlusturanAdSoyad = p.OlusturanKullanici?.AdSoyad,
             AktifMi = p.AktifMi,
             ProgressYuzde = yuzde,
+            MeKullaniciId = userId,
+            MeGenelYetkiliMi = genelYetkili,
+            YetkiTipi = p.YetkiTipi,
+            YetkiKullaniciIds = p.YetkiKullanicilar?.Select(y => y.KullaniciId).ToList() ?? new List<int>(),
             Detaylar = (p.Detaylar ?? Array.Empty<ProjeDetay>())
                 .OrderBy(d => d.Sira)
                 .Select(d => new ProjeDetayItemDto
@@ -108,7 +119,8 @@ public class ProjeService : IProjeService
                     SorumluAdSoyad = d.SorumluKullanici?.AdSoyad,
                     Aciklama = d.Aciklama,
                     Sira = d.Sira,
-                    YorumSayisi = d.Yorumlar?.Count ?? 0
+                    YorumSayisi = d.Yorumlar?.Count ?? 0,
+                    InsertedByUserId = d.InsertedByUserId
                 }).ToList()
         };
     }
@@ -189,6 +201,15 @@ public class ProjeService : IProjeService
         proje.BitisTarihi = dto.BitisTarihi;
         proje.SorumluKullaniciId = dto.SorumluKullaniciId;
         proje.AktifMi = dto.AktifMi;
+        proje.YetkiTipi = dto.YetkiTipi;
+
+        var mevcutYetkiler = await _db.ProjeYetkiKullanicilar.Where(y => y.ProjeId == id).ToListAsync(ct);
+        _db.ProjeYetkiKullanicilar.RemoveRange(mevcutYetkiler);
+        if (dto.YetkiTipi == 1 && dto.YetkiKullaniciIds != null && dto.YetkiKullaniciIds.Count > 0)
+        {
+            foreach (var kid in dto.YetkiKullaniciIds)
+                _db.ProjeYetkiKullanicilar.Add(new ProjeYetkiKullanici { ProjeId = id, KullaniciId = kid });
+        }
         await _db.SaveChangesAsync(ct);
     }
 

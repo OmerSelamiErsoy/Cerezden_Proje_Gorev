@@ -37,8 +37,69 @@
         font-weight: 600;
         flex-shrink: 0;
     }
+    /* Paylaşılacak Kişiler - modern checkbox listesi */
+    .paylasilacak-kisiler-list {
+        max-height: 220px;
+        overflow-y: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 8px;
+        background: #fafafa;
+    }
+    .paylasilacak-kisiler-list .paylasilacak-kisi-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+    .paylasilacak-kisiler-list .paylasilacak-kisi-item:hover {
+        background: #f1f5f9;
+    }
+    .paylasilacak-kisiler-list .paylasilacak-kisi-item .custom-checkbox-wrap {
+        flex-shrink: 0;
+        width: 22px;
+        height: 22px;
+        position: relative;
+        border-radius: 6px;
+        border: 2px solid #cbd5e1;
+        background: #fff;
+        transition: border-color 0.2s, background 0.2s;
+    }
+    .paylasilacak-kisiler-list .paylasilacak-kisi-item.selected .custom-checkbox-wrap {
+        background: #3b82f6;
+        border-color: #3b82f6;
+    }
+    .paylasilacak-kisiler-list .paylasilacak-kisi-item .custom-checkbox-wrap .check-icon {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+    .paylasilacak-kisiler-list .paylasilacak-kisi-item.selected .custom-checkbox-wrap .check-icon {
+        opacity: 1;
+    }
+    .paylasilacak-kisiler-list .paylasilacak-kisi-item .custom-checkbox-wrap .check-icon svg {
+        width: 14px;
+        height: 14px;
+        stroke: #fff;
+    }
+    .paylasilacak-kisiler-list .paylasilacak-kisi-item .kisi-adi {
+        flex: 1;
+        font-weight: 500;
+        color: #1e293b;
+    }
+    .paylasilacak-kisiler-list .paylasilacak-kisi-item .kisi-ceptel {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
 </style>
-<div id="gorevler-page">
+<div id="gorevler-page" data-vue-page>
 <div id="gorevler-app" class="gorevler-app" data-grup-id="@(grupId?.ToString() ?? "")" v-cloak>
     <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
         <div class="w-100 text-center">
@@ -69,12 +130,13 @@
                             </div>
                             <p v-if="kart.aciklama" class="small text-muted mb-1 truncate">{{ kart.aciklama }}</p>
                             <div class="small text-muted">Oluşturan: {{ kart.olusturanAdSoyad }} - {{ formatDate(kart.olusturmaTarihi) }}</div>
+                            <div class="small text-muted">Sorumlu kişi: <span class="text-danger fw-medium">{{ kart.sorumluAdSoyad || '-' }}</span></div>
                             <div class="small text-muted">
                                 <span v-if="kart.turu === 0">Atama: Kendine atanmış</span>
                                 <template v-else-if="kart.turu === 1">
-                                    <span v-if="me && me.genelYetkiliMi" class="atama-link" @@click.prevent="atananlarAc(kart)" title="Atanan kişiler">Kişilere atanmış: ({{ (kart.atananlar || []).length }})</span>
-                                    <span v-else-if="kart.olusturanKullaniciId !== me?.kullaniciId">Kişilere atanmış: Bana Atanmış</span>
-                                    <span v-else class="atama-link" @@click.prevent="atananlarAc(kart)" title="Atanan kişiler">Kişilere atanmış: ({{ (kart.atananlar || []).length }})</span>
+                                    <span v-if="me && me.genelYetkiliMi" class="atama-link" @@click.prevent="atananlarAc(kart)" title="Paylaşılan kişiler">Paylaşılan Kişiler: ({{ (kart.atananlar || []).length }})</span>
+                                    <span v-else-if="kart.olusturanKullaniciId !== me?.kullaniciId">Paylaşılan Kişiler: Bana Paylaşıldı</span>
+                                    <span v-else class="atama-link" @@click.prevent="atananlarAc(kart)" title="Paylaşılan kişiler">Paylaşılan Kişiler: ({{ (kart.atananlar || []).length }})</span>
                                 </template>
                             </div>
                             <div class="mt-2">
@@ -97,7 +159,7 @@
                                     <div class="dropdown">
                                         <a href="#" class="text-secondary p-1" data-bs-toggle="dropdown" title="İşlemler" @@click.prevent><i class="fas fa-cog"></i></a>
                                         <ul class="dropdown-menu dropdown-menu-end">
-                                            <li><a class="dropdown-item" href="#" @@click.prevent="atananlarAc(kart)"><i class="fas fa-users me-1"></i> Atanan kişiler</a></li>
+                                            <li><a class="dropdown-item" href="#" @@click.prevent="atananlarAc(kart)"><i class="fas fa-users me-1"></i> Paylaşılan Kişiler</a></li>
                                             <li><a class="dropdown-item" href="#" @@click.prevent="logAc(kart)">Log</a></li>
                                             <li><a class="dropdown-item" href="#" @@click.prevent="gorevDuzenle(kart)">Güncelle</a></li>
                                             <li><a class="dropdown-item text-danger" href="#" @@click.prevent="gorevSil(kart)">Sil</a></li>
@@ -124,6 +186,7 @@
                                     <div class="min-w-0 flex-grow-1">
                                         <div class="fw-medium text-truncate mb-1">{{ k.ad }}</div>
                                         <div class="small text-muted mb-2">Oluşturan: {{ k.olusturanAdSoyad }} - {{ formatDate(k.olusturmaTarihi) }}</div>
+                                        <div class="small text-muted mb-2">Sorumlu kişi: <span class="text-danger fw-medium">{{ k.sorumluAdSoyad || '-' }}</span></div>
                                         <div class="d-flex align-items-center flex-wrap gap-2">
                                             <a href="#" class="text-decoration-none small" @@click.prevent="yorumAc(k)"><i class="fas fa-comment" :class="(k.yorumSayisi || 0) > 0 ? 'text-danger' : 'text-success'"></i><span v-if="(k.yorumSayisi || 0) > 0"> - Mesaj ({{ k.yorumSayisi }})</span><span v-else> - mesaj yaz</span></a>
                                             <button type="button" class="btn btn-sm btn-outline-secondary py-0" @@click="logAc(k)">Log</button>
@@ -152,6 +215,7 @@
                                     <div class="min-w-0 flex-grow-1">
                                         <div class="fw-medium text-truncate mb-1">{{ k.ad }}</div>
                                         <div class="small text-muted mb-2">Oluşturan: {{ k.olusturanAdSoyad }} - {{ formatDate(k.olusturmaTarihi) }}</div>
+                                        <div class="small text-muted mb-2">Sorumlu kişi: <span class="text-danger fw-medium">{{ k.sorumluAdSoyad || '-' }}</span></div>
                                         <div class="d-flex align-items-center flex-wrap gap-2">
                                             <a href="#" class="text-decoration-none small" @@click.prevent="yorumAc(k)"><i class="fas fa-comment" :class="(k.yorumSayisi || 0) > 0 ? 'text-danger' : 'text-success'"></i><span v-if="(k.yorumSayisi || 0) > 0"> - Mesaj ({{ k.yorumSayisi }})</span><span v-else> - mesaj yaz</span></a>
                                             <button type="button" class="btn btn-sm btn-outline-secondary py-0" @@click="logAc(k)">Log</button>
@@ -176,14 +240,14 @@
 </div>
 
     <div class="modal fade" id="atananlarModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">Atanan kişiler - {{ atananlarGorevAd }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-header"><h5 class="modal-title">Paylaşılan Kişiler - {{ atananlarGorevAd }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
             <div class="mb-3">
                 <label class="form-label small text-muted mb-0">Tür</label>
                 <div class="fw-medium">{{ atananlarTuruMetin }}</div>
             </div>
             <div v-if="atananlarTuruMetin === 'Kişilere'">
-                <label class="form-label small text-muted mb-1">Atanan kişiler</label>
+                <label class="form-label small text-muted mb-1">Paylaşılan Kişiler</label>
                 <ul v-if="atananlarListesi.length" class="list-group list-group-flush">
                     <li v-for="ad in atananlarListesi" :key="ad" class="list-group-item py-2">{{ ad }}</li>
                 </ul>
@@ -199,7 +263,7 @@
             <ul v-else class="list-group list-group-flush">
                 <li v-for="l in durumLog" :key="l.id" class="list-group-item d-flex justify-content-between align-items-start">
                     <div>
-                        <strong>{{ l.degistirenAdSoyad }}</strong> · {{ formatDate(l.degistirmeTarihi) }}
+                        <strong>{{ l.degistirenAdSoyad }}{{ (l.degistirenCepTel != null && l.degistirenCepTel !== '') ? ' - ' + l.degistirenCepTel : '' }}</strong> · {{ formatDate(l.degistirmeTarihi) }}
                         <div class="small text-muted">{{ l.eskiDurumAd || '(yok)' }} → {{ l.yeniDurumAd }}</div>
                     </div>
                 </li>
@@ -214,8 +278,20 @@
                 <div class="mb-2"><label class="form-label">Görev Adı *</label><input v-model="gorevForm.ad" class="form-control" /></div>
                 <div class="mb-2"><label class="form-label">Açıklama</label><textarea v-model="gorevForm.aciklama" class="form-control" rows="2"></textarea></div>
                 <div class="mb-2" v-if="gorevForm.id"><label class="form-label">Durum</label><select v-model="gorevForm.durumId" class="form-select"><option v-for="d in kanban.durumlar" :key="d.id" :value="d.id">{{ d.ad }}</option></select></div>
-                <div class="mb-2"><label class="form-label">Tür</label><select v-model="gorevForm.turu" class="form-select"><option :value="0">Kendime</option><option :value="1">Kişilere</option></select></div>
-                <div class="mb-2" v-if="gorevForm.turu === 1"><label class="form-label">Atanacak Kişiler</label><select v-model="gorevForm.atananKullaniciIds" multiple class="form-select" style="height:100px"><option v-for="k in kullanicilar" :key="k.id" :value="k.id">{{ k.adSoyad }}</option></select></div>
+                <div class="mb-2"><label class="form-label">Tür</label><select v-model="gorevForm.turu" class="form-select" @@change="gorevFormTuruDegisti"><option :value="0">Kendime</option><option :value="1">Kişilere</option></select></div>
+                <div class="mb-2" v-if="gorevForm.turu === 1"><label class="form-label">Sorumlu Kişi *</label><select v-model="gorevForm.sorumluKullaniciId" class="form-select" required><option :value="null">Seçiniz</option><option v-for="k in kullanicilar" :key="k.id" :value="k.id">{{ k.adSoyad }} - {{ k.cepTel || '-' }}</option></select></div>
+                <div class="mb-2" v-if="gorevForm.turu === 1">
+                    <label class="form-label">Paylaşılacak Kişiler</label>
+                    <div class="paylasilacak-kisiler-list">
+                        <div v-for="k in kullanicilar" :key="k.id" class="paylasilacak-kisi-item" :class="{ selected: (gorevForm.atananKullaniciIds || []).indexOf(k.id) !== -1 }" @@click="atananKullaniciToggle(k)">
+                            <div class="custom-checkbox-wrap">
+                                <span class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                            </div>
+                            <span class="kisi-adi">{{ k.adSoyad }}</span>
+                            <span class="kisi-ceptel">{{ k.cepTel || '-' }}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button><button type="button" class="btn btn-primary" @@click="gorevKaydet">Kaydet</button></div>
         </div></div>
@@ -231,7 +307,7 @@
                 </div>
                 <div class="flex-grow-1 min-w-0">
                     <div class="d-flex justify-content-between align-items-center mb-1">
-                        <div class="fw-semibold small text-truncate">{{ y.yazanAdSoyad || 'Bilinmeyen kullanıcı' }}</div>
+                        <div class="fw-semibold small text-truncate">{{ y.yazanAdSoyad || 'Bilinmeyen kullanıcı' }}{{ (y.yazanCepTel != null && y.yazanCepTel !== '') ? ' - ' + y.yazanCepTel : '' }}</div>
                         <div class="small text-muted ms-2">{{ formatDate(y.insertDate) }}</div>
                     </div>
                     <p class="mb-1 small">{{ y.yorumMetni }}</p>
@@ -264,7 +340,7 @@ createApp({
             kanban: { durumlar: [], kartlar: {}, tamamlananIptalSon50: [], me: null },
             me: null,
             kullanicilar: [],
-            gorevForm: { id: null, ad: '', aciklama: '', durumId: null, turu: 0, atananKullaniciIds: [], gorevGrubuId: grupId },
+            gorevForm: { id: null, ad: '', aciklama: '', durumId: null, turu: 0, atananKullaniciIds: [], sorumluKullaniciId: null, gorevGrubuId: grupId },
             duzenlenenKart: null,
             seciliGorev: null,
             gorevYorumlar: [],
@@ -284,18 +360,29 @@ createApp({
         iptalEdilenler() { return (this.kanban.tamamlananIptalSon50 || []).filter(k => k.durumId === 4); }
     },
     mounted() {
-        this.yukle();
-        axios.get('/api/Kullanicilar').then(r => { this.kullanicilar = r.data; });
+        const p1 = this.yukle();
+        const p2 = axios.get('/api/Kullanicilar').then(r => { this.kullanicilar = r.data; });
+        Promise.all([p1, p2]).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
     },
     methods: {
         yukle() {
             const url = grupId != null ? '/api/Gorevler/kanban?grupId=' + grupId : '/api/Gorevler/kanban';
-            axios.get(url).then(r => { this.kanban = r.data; this.me = r.data.me || null; });
+            return axios.get(url).then(r => { this.kanban = r.data; this.me = r.data.me || null; });
         },
         formatDate(d) { if (!d) return '-'; return new Date(d).toLocaleString('tr-TR'); },
-        yeniGorev() { this.gorevForm = { id: null, ad: '', aciklama: '', durumId: null, turu: 0, atananKullaniciIds: [], gorevGrubuId: this.grupId }; },
+        yeniGorev() { this.gorevForm = { id: null, ad: '', aciklama: '', durumId: null, turu: 0, atananKullaniciIds: [], sorumluKullaniciId: this.me?.kullaniciId ?? null, gorevGrubuId: this.grupId }; },
+        gorevFormTuruDegisti() { if (this.gorevForm.turu === 0) this.gorevForm.sorumluKullaniciId = this.me?.kullaniciId ?? null; },
+        atananKullaniciToggle(k) {
+            const arr = this.gorevForm.atananKullaniciIds || [];
+            const idx = arr.indexOf(k.id);
+            if (idx === -1) this.gorevForm.atananKullaniciIds = [...arr, k.id];
+            else this.gorevForm.atananKullaniciIds = arr.filter(id => id !== k.id);
+        },
         gorevKaydet() {
             if (!this.gorevForm.ad.trim()) return;
+            if (this.gorevForm.turu === 1 && (!this.gorevForm.sorumluKullaniciId || this.gorevForm.sorumluKullaniciId === '')) return;
+            if (window.setPageLoading) window.setPageLoading(true);
+            const finish = () => { this.duzenlenenKart = null; bootstrap.Modal.getInstance(document.getElementById('gorevModal')).hide(); if (window.setPageLoading) window.setPageLoading(false); };
             if (this.gorevForm.id) {
                 const k = this.duzenlenenKart;
                 if (!k) return;
@@ -306,16 +393,24 @@ createApp({
                     durumId: durumId,
                     turu: this.gorevForm.turu,
                     atananKullaniciIds: this.gorevForm.turu === 1 ? (this.gorevForm.atananKullaniciIds || []) : null,
+                    sorumluKullaniciId: this.gorevForm.turu === 0 ? (this.me?.kullaniciId ?? null) : (this.gorevForm.sorumluKullaniciId || null),
                     renk: k.renk || null
                 };
-                axios.put('/api/Gorevler/' + this.gorevForm.id, payload).then(() => { this.yukle(); this.duzenlenenKart = null; bootstrap.Modal.getInstance(document.getElementById('gorevModal')).hide(); });
+                axios.put('/api/Gorevler/' + this.gorevForm.id, payload).then(() => this.yukle()).then(finish).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
             } else {
-                const payload = { ad: this.gorevForm.ad, aciklama: this.gorevForm.aciklama, turu: this.gorevForm.turu, atananKullaniciIds: this.gorevForm.turu === 1 ? this.gorevForm.atananKullaniciIds : null, gorevGrubuId: this.grupId };
-                axios.post('/api/Gorevler', payload).then(() => { this.yukle(); bootstrap.Modal.getInstance(document.getElementById('gorevModal')).hide(); });
+                const payload = { ad: this.gorevForm.ad, aciklama: this.gorevForm.aciklama, turu: this.gorevForm.turu, atananKullaniciIds: this.gorevForm.turu === 1 ? this.gorevForm.atananKullaniciIds : null, sorumluKullaniciId: this.gorevForm.turu === 0 ? (this.me?.kullaniciId ?? null) : (this.gorevForm.sorumluKullaniciId || null), gorevGrubuId: this.grupId };
+                axios.post('/api/Gorevler', payload).then(() => this.yukle()).then(finish).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
             }
         },
-        durumGuncelle(kart) { axios.put('/api/Gorevler/' + kart.id, { ad: kart.ad, aciklama: kart.aciklama || '', durumId: kart.durumId, renk: kart.renk || null }).then(() => this.yukle()); },
-        renkSecildi(kart, c) { kart.renk = c; axios.put('/api/Gorevler/' + kart.id, { ad: kart.ad, aciklama: kart.aciklama || '', durumId: kart.durumId, renk: c }).then(() => this.yukle()); },
+        durumGuncelle(kart) {
+            if (window.setPageLoading) window.setPageLoading(true);
+            axios.put('/api/Gorevler/' + kart.id, { ad: kart.ad, aciklama: kart.aciklama || '', durumId: kart.durumId, renk: kart.renk || null }).then(() => this.yukle()).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
+        },
+        renkSecildi(kart, c) {
+            kart.renk = c;
+            if (window.setPageLoading) window.setPageLoading(true);
+            axios.put('/api/Gorevler/' + kart.id, { ad: kart.ad, aciklama: kart.aciklama || '', durumId: kart.durumId, renk: c }).then(() => this.yukle()).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
+        },
         gorevDuzenle(kart) {
             this.duzenlenenKart = kart;
             this.gorevForm = {
@@ -325,23 +420,31 @@ createApp({
                 durumId: kart.durumId,
                 turu: kart.turu ?? 0,
                 atananKullaniciIds: Array.isArray(kart.atananKullaniciIds) ? [...kart.atananKullaniciIds] : [],
+                sorumluKullaniciId: kart.sorumluKullaniciId ?? (kart.turu === 0 ? this.me?.kullaniciId : null),
                 gorevGrubuId: this.grupId
             };
             new bootstrap.Modal(document.getElementById('gorevModal')).show();
         },
-        gorevSil(kart) { if (!confirm('Bu görevi silmek istediğinize emin misiniz?')) return; axios.delete('/api/Gorevler/' + kart.id).then(() => this.yukle()); },
+        gorevSil(kart) {
+            if (!confirm('Bu görevi silmek istediğinize emin misiniz?')) return;
+            if (window.setPageLoading) window.setPageLoading(true);
+            axios.delete('/api/Gorevler/' + kart.id).then(() => this.yukle()).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
+        },
         atananlarAc(kart) { this.atananlarGorevAd = kart.ad; this.atananlarTuru = kart.turu ?? 0; this.atananlarListesi = kart.atananlar && Array.isArray(kart.atananlar) ? kart.atananlar.filter(Boolean) : []; new bootstrap.Modal(document.getElementById('atananlarModal')).show(); },
         logAc(kart) { this.logGorevAd = kart.ad; this.durumLog = []; axios.get('/api/Gorevler/' + kart.id + '/durum-log').then(r => { this.durumLog = r.data; }); new bootstrap.Modal(document.getElementById('logModal')).show(); },
         yorumAc(kart) { this.seciliGorev = kart; this.yeniYorum = ''; axios.get('/api/Gorevler/' + kart.id + '/yorumlar').then(r => { this.gorevYorumlar = r.data; }); new bootstrap.Modal(document.getElementById('yorumModal')).show(); },
         yorumGonder() {
             if (!this.yeniYorum.trim() || !this.seciliGorev) return;
+            if (window.setPageLoading) window.setPageLoading(true);
             axios.post('/api/Gorevler/' + this.seciliGorev.id + '/yorumlar', { yorumMetni: this.yeniYorum })
                 .then(() => {
                     this.yeniYorum = '';
-                    axios.get('/api/Gorevler/' + this.seciliGorev.id + '/yorumlar').then(r => { this.gorevYorumlar = r.data; });
-                    this.yukle();
-                });
-    }
+                    return axios.get('/api/Gorevler/' + this.seciliGorev.id + '/yorumlar').then(r => { this.gorevYorumlar = r.data; });
+                })
+                .then(() => this.yukle())
+                .then(() => { if (window.setPageLoading) window.setPageLoading(false); })
+                .catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
+        }
     }
 }).mount('#gorevler-page');
 </script>

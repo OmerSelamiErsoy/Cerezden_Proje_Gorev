@@ -22,6 +22,8 @@ public class ProjeListDto
     public bool AktifMi { get; set; }
     public DateTime? PlanlananBitisTarihi { get; set; }
     public string? SorumluAdSoyad { get; set; }
+    /// <summary>Genel yetkili veya projeyi oluşturan kullanıcı silebilir.</summary>
+    public bool SilinebilirMi { get; set; }
 }
 
 public class ProjeDetayDto
@@ -36,8 +38,16 @@ public class ProjeDetayDto
     public DateTime? BitisTarihi { get; set; }
     public int? SorumluKullaniciId { get; set; }
     public string? SorumluAdSoyad { get; set; }
+    public int? OlusturanKullaniciId { get; set; }
+    public string? OlusturanAdSoyad { get; set; }
     public bool AktifMi { get; set; }
     public int ProgressYuzde { get; set; }
+    /// <summary>Oturum açan kullanıcının Kullanici.Id değeri.</summary>
+    public int? MeKullaniciId { get; set; }
+    /// <summary>Oturum açan kullanıcı GeneralAuthority listesinde mi (genel yetkili).</summary>
+    public bool MeGenelYetkiliMi { get; set; }
+    public int YetkiTipi { get; set; }
+    public List<int> YetkiKullaniciIds { get; set; } = new();
     public List<ProjeDetayItemDto> Detaylar { get; set; } = new();
 }
 
@@ -54,6 +64,8 @@ public class ProjeDetayItemDto
     public string? Aciklama { get; set; }
     public int Sira { get; set; }
     public int YorumSayisi { get; set; }
+    /// <summary>Adımı ekleyen kullanıcının Kullanici.Id değeri.</summary>
+    public int? InsertedByUserId { get; set; }
 }
 
 public class ProjeCreateDto
@@ -87,4 +99,6 @@ public class ProjeUpdateDto
     public DateTime? BitisTarihi { get; set; }
     public int? SorumluKullaniciId { get; set; }
     public bool AktifMi { get; set; }
+    public int YetkiTipi { get; set; }
+    public List<int>? YetkiKullaniciIds { get; set; }
 }

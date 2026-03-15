@@ -2,6 +2,58 @@
     Layout = "_AdminLayout";
     var projeId = ViewData["ProjeId"] as int? ?? 0;
 }
+<style>
+    /* Paylaşılacak Kişiler - Create ile aynı */
+    #proje-edit-app .paylasilacak-kisiler-list {
+        max-height: 220px;
+        overflow-y: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 8px;
+        background: #fafafa;
+    }
+    #proje-edit-app .paylasilacak-kisiler-list .paylasilacak-kisi-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+    #proje-edit-app .paylasilacak-kisiler-list .paylasilacak-kisi-item:hover { background: #f1f5f9; }
+    #proje-edit-app .paylasilacak-kisiler-list .paylasilacak-kisi-item .custom-checkbox-wrap {
+        flex-shrink: 0;
+        width: 22px;
+        height: 22px;
+        position: relative;
+        border-radius: 6px;
+        border: 2px solid #cbd5e1;
+        background: #fff;
+        transition: border-color 0.2s, background 0.2s;
+    }
+    #proje-edit-app .paylasilacak-kisiler-list .paylasilacak-kisi-item.selected .custom-checkbox-wrap {
+        background: #3b82f6;
+        border-color: #3b82f6;
+    }
+    #proje-edit-app .paylasilacak-kisiler-list .paylasilacak-kisi-item .custom-checkbox-wrap .check-icon {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+    #proje-edit-app .paylasilacak-kisiler-list .paylasilacak-kisi-item.selected .custom-checkbox-wrap .check-icon { opacity: 1; }
+    #proje-edit-app .paylasilacak-kisiler-list .paylasilacak-kisi-item .custom-checkbox-wrap .check-icon svg {
+        width: 14px;
+        height: 14px;
+        stroke: #fff;
+    }
+    #proje-edit-app .paylasilacak-kisiler-list .paylasilacak-kisi-item .kisi-adi { flex: 1; font-weight: 500; color: #1e293b; }
+    #proje-edit-app .paylasilacak-kisiler-list .paylasilacak-kisi-item .kisi-ceptel { font-size: 0.875rem; color: #64748b; }
+</style>
 <div id="proje-edit-app" data-proje-id="@projeId" v-cloak>
     <div class="card p-4">
         <form @@submit.prevent="kaydet" v-if="proje">
@@ -13,8 +65,26 @@
                 <div class="col-md-4 mb-3"><label class="form-label">Planlanan Bitiş</label><input v-model="proje.planlananBitisTarihi" type="date" class="form-control" /></div>
                 <div class="col-md-4 mb-3"><label class="form-label">Bitiş</label><input v-model="proje.bitisTarihi" type="date" class="form-control" /></div>
             </div>
-            <div class="mb-3"><label class="form-label">Sorumlu</label><select v-model="proje.sorumluKullaniciId" class="form-select"><option :value="null">Seçiniz</option><option v-for="k in kullanicilar" :key="k.id" :value="k.id">{{ k.adSoyad }}</option></select></div>
-            <div class="mb-3"><label class="form-check"><input type="checkbox" v-model="proje.aktifMi" /> Aktif</label></div>
+            <div class="mb-3"><label class="form-label">Sorumlu</label><select v-model="proje.sorumluKullaniciId" class="form-select"><option :value="null">Seçiniz</option><option v-for="k in kullanicilar" :key="k.id" :value="k.id">{{ k.adSoyad }} - {{ k.cepTel || '-' }}</option></select></div>
+            <div class="mb-3">
+                <label class="form-label">Paylaşılacak Kişiler</label>
+                <div>
+                    <label class="me-3"><input type="radio" v-model="proje.yetkiTipi" :value="0" /> Genel (tüm kullanıcılar)</label>
+                    <label><input type="radio" v-model="proje.yetkiTipi" :value="1" /> Kişi bazlı</label>
+                </div>
+                <div v-if="proje.yetkiTipi === 1" class="mt-2">
+                    <div class="paylasilacak-kisiler-list">
+                        <div v-for="k in kullanicilar" :key="k.id" class="paylasilacak-kisi-item" :class="{ selected: (proje.yetkiKullaniciIds || []).indexOf(k.id) !== -1 }" @@click="yetkiKullaniciToggle(k)">
+                            <div class="custom-checkbox-wrap">
+                                <span class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                            </div>
+                            <span class="kisi-adi">{{ k.adSoyad }}</span>
+                            <span class="kisi-ceptel">{{ k.cepTel || '-' }}</span>
+                        </div>
+                    </div>
+                    <small class="text-muted">Birden fazla kişi seçebilirsiniz.</small>
+                </div>
+            </div>
             <button type="submit" class="btn btn-primary">Kaydet</button>
             <a href="/Projeler" class="btn btn-secondary ms-2">İptal</a>
         </form>
@@ -27,13 +97,27 @@ const id = document.getElementById('proje-edit-app').dataset.projeId;
 createApp({
     data() { return { proje: null, durumlar: [], kullanicilar: [] }; },
     mounted() {
-        axios.get('/api/Projeler/' + id).then(r => { this.proje = r.data; this.proje.baslangicTarihi = this.proje.baslangicTarihi ? this.proje.baslangicTarihi.split('T')[0] : null; this.proje.planlananBitisTarihi = this.proje.planlananBitisTarihi ? this.proje.planlananBitisTarihi.split('T')[0] : null; this.proje.bitisTarihi = this.proje.bitisTarihi ? this.proje.bitisTarihi.split('T')[0] : null; });
+        axios.get('/api/Projeler/' + id).then(r => {
+            this.proje = r.data;
+            this.proje.baslangicTarihi = this.proje.baslangicTarihi ? this.proje.baslangicTarihi.split('T')[0] : null;
+            this.proje.planlananBitisTarihi = this.proje.planlananBitisTarihi ? this.proje.planlananBitisTarihi.split('T')[0] : null;
+            this.proje.bitisTarihi = this.proje.bitisTarihi ? this.proje.bitisTarihi.split('T')[0] : null;
+            if (!Array.isArray(this.proje.yetkiKullaniciIds)) this.proje.yetkiKullaniciIds = [];
+        });
         axios.get('/api/Parametre/durumlar').then(r => { this.durumlar = r.data; });
         axios.get('/api/Kullanicilar').then(r => { this.kullanicilar = r.data; });
     },
     methods: {
+        yetkiKullaniciToggle(k) {
+            var ids = this.proje.yetkiKullaniciIds || [];
+            var idx = ids.indexOf(k.id);
+            if (idx === -1) ids.push(k.id);
+            else ids.splice(idx, 1);
+            this.proje.yetkiKullaniciIds = ids;
+        },
         kaydet() {
-            axios.put('/api/Projeler/' + id, { ad: this.proje.ad, projeDurumId: this.proje.projeDurumId, aciklama: this.proje.aciklama, baslangicTarihi: this.proje.baslangicTarihi || null, planlananBitisTarihi: this.proje.planlananBitisTarihi || null, bitisTarihi: this.proje.bitisTarihi || null, sorumluKullaniciId: this.proje.sorumluKullaniciId, aktifMi: this.proje.aktifMi }).then(() => window.location.href = '/Projeler/Detay/' + id);
+            var payload = { ad: this.proje.ad, projeDurumId: this.proje.projeDurumId, aciklama: this.proje.aciklama, baslangicTarihi: this.proje.baslangicTarihi || null, planlananBitisTarihi: this.proje.planlananBitisTarihi || null, bitisTarihi: this.proje.bitisTarihi || null, sorumluKullaniciId: this.proje.sorumluKullaniciId, aktifMi: this.proje.aktifMi, yetkiTipi: this.proje.yetkiTipi, yetkiKullaniciIds: this.proje.yetkiTipi === 1 ? this.proje.yetkiKullaniciIds : null };
+            axios.put('/api/Projeler/' + id, payload).then(() => window.location.href = '/Projeler/Detay/' + id).catch(e => alert('Hata: ' + (e.response?.data?.message || e.message)));
         }
     }
 }).mount('#proje-edit-app');

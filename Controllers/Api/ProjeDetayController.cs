@@ -27,6 +27,7 @@ public class ProjeDetayController : ControllerBase
     {
         if (!await _yetki.ProjeGorebilirMiAsync(projeId, ct)) return Forbid();
         var list = await _db.ProjeDetaylar
+            .AsNoTracking()
             .Where(d => d.ProjeId == projeId)
             .OrderBy(d => d.Sira)
             .Include(d => d.Durum)
@@ -57,13 +58,14 @@ public class ProjeDetayController : ControllerBase
         if (!await _yetki.ProjeGorebilirMiAsync(projeId, ct)) return Forbid();
         var beklemedeId = await _db.Durumlar.Where(x => x.Ad == "Beklemede").Select(x => x.Id).FirstOrDefaultAsync(ct);
         if (beklemedeId == 0) beklemedeId = 2;
+        var durumId = (dto.DurumId.HasValue && dto.DurumId.Value > 0) ? dto.DurumId.Value : beklemedeId;
         var maxSira = await _db.ProjeDetaylar.Where(d => d.ProjeId == projeId).Select(d => (int?)d.Sira).MaxAsync(ct) ?? 0;
         var entity = new ProjeDetay
         {
             ProjeId = projeId,
             KategoriId = dto.KategoriId,
             AdimAdi = dto.AdimAdi,
-            DurumId = beklemedeId,
+            DurumId = durumId,
             SorumluKullaniciId = dto.SorumluKullaniciId,
             Aciklama = dto.Aciklama,
             Sira = maxSira + 1
@@ -130,12 +132,34 @@ public class ProjeDetayController : ControllerBase
         return Ok();
     }
 
+    /// <summary>Seçilen adımların sorumlu kişisini toplu günceller.</summary>
+    [HttpPut("sorumlu-guncelle")]
+    public async Task<IActionResult> TopluSorumluGuncelle(int projeId, [FromBody] TopluSorumluGuncelleDto dto, CancellationToken ct)
+    {
+        if (!await _yetki.ProjeGorebilirMiAsync(projeId, ct)) return Forbid();
+        if (dto.DetayIds == null || dto.DetayIds.Count == 0) return BadRequest("En az bir adım seçin.");
+        var entities = await _db.ProjeDetaylar
+            .Where(d => d.ProjeId == projeId && dto.DetayIds.Contains(d.Id))
+            .ToListAsync(ct);
+        foreach (var e in entities)
+            e.SorumluKullaniciId = dto.SorumluKullaniciId;
+        await _db.SaveChangesAsync(ct);
+        return Ok();
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int projeId, int id, CancellationToken ct)
     {
         if (!await _yetki.ProjeGorebilirMiAsync(projeId, ct)) return Forbid();
-        var entity = await _db.ProjeDetaylar.FirstOrDefaultAsync(d => d.Id == id && d.ProjeId == projeId, ct);
+        var entity = await _db.ProjeDetaylar
+            .Include(d => d.Proje)
+            .FirstOrDefaultAsync(d => d.Id == id && d.ProjeId == projeId, ct);
         if (entity == null) return NotFound();
+        var userId = _currentUser.GetCurrentUserId();
+        var genelYetkili = _yetki.GenelYetkiliMi();
+        var projeOlusturanId = entity.Proje?.OlusturanKullaniciId;
+        var silinebilir = (projeOlusturanId == userId && genelYetkili) || (entity.InsertedByUserId == userId);
+        if (!silinebilir) return Forbid();
         entity.IsDeleted = true;
         entity.DeleteDate = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
@@ -147,6 +171,7 @@ public class ProjeDetayCreateDto
 {
     public int? KategoriId { get; set; }
     public string AdimAdi { get; set; } = "";
+    public int? DurumId { get; set; }
     public int? SorumluKullaniciId { get; set; }
     public string? Aciklama { get; set; }
 }
@@ -165,4 +190,10 @@ public class TopluDurumGuncelleDto
 {
     public List<int> DetayIds { get; set; } = new();
     public int DurumId { get; set; }
+}
+
+public class TopluSorumluGuncelleDto
+{
+    public List<int> DetayIds { get; set; } = new();
+    public int? SorumluKullaniciId { get; set; }
 }

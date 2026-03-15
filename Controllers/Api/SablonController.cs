@@ -26,6 +26,7 @@ public class SablonController : ControllerBase
     public async Task<ActionResult<List<SablonListDto>>> List(CancellationToken ct)
     {
         var list = await _db.ProjeSablonlar
+            .AsNoTracking()
             .OrderByDescending(s => s.Id)
             .Include(s => s.Detaylar!)
                 .ThenInclude(d => d.Kategori)
@@ -44,6 +45,7 @@ public class SablonController : ControllerBase
     public async Task<ActionResult<SablonDetayDto>> Get(int id, CancellationToken ct)
     {
         var s = await _db.ProjeSablonlar
+            .AsNoTracking()
             .Include(x => x.Detaylar!)
                 .ThenInclude(d => d.Kategori)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
@@ -122,8 +124,6 @@ public class SablonController : ControllerBase
         var userId = _currentUser.GetCurrentUserId();
         var islemBekliyorId = await _db.Durumlar.Where(x => x.Ad == "İşlem Bekliyor").Select(x => x.Id).FirstOrDefaultAsync(ct);
         if (islemBekliyorId == 0) islemBekliyorId = 1;
-        var beklemedeId = await _db.Durumlar.Where(x => x.Ad == "Beklemede").Select(x => x.Id).FirstOrDefaultAsync(ct);
-        if (beklemedeId == 0) beklemedeId = 2;
 
         var proje = new Proje
         {
@@ -158,7 +158,7 @@ public class SablonController : ControllerBase
                     ProjeId = proje.Id,
                     KategoriId = d.KategoriId,
                     AdimAdi = d.AdimAdi,
-                    DurumId = beklemedeId,
+                    DurumId = islemBekliyorId,
                     Aciklama = d.Aciklama,
                     Sira = d.Sira
                 });

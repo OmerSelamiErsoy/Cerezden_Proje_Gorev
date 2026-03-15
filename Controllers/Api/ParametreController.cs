@@ -18,7 +18,7 @@ public class ParametreController : ControllerBase
     [HttpGet("durumlar")]
     public async Task<ActionResult<List<DurumDto>>> GetDurumlar(CancellationToken ct)
     {
-        var list = await _db.Durumlar.OrderBy(d => d.Sira).Select(d => new DurumDto { Id = d.Id, Ad = d.Ad, Sira = d.Sira }).ToListAsync(ct);
+        var list = await _db.Durumlar.AsNoTracking().OrderBy(d => d.Sira).Select(d => new DurumDto { Id = d.Id, Ad = d.Ad, Sira = d.Sira }).ToListAsync(ct);
         return Ok(list);
     }
 
@@ -59,7 +59,7 @@ public class ParametreController : ControllerBase
     [HttpGet("kategoriler")]
     public async Task<ActionResult<List<KategoriDto>>> GetKategoriler(CancellationToken ct)
     {
-        var list = await _db.ProjeDetayKategoriler.OrderBy(k => k.Sira).Select(k => new KategoriDto { Id = k.Id, Ad = k.Ad, Sira = k.Sira }).ToListAsync(ct);
+        var list = await _db.ProjeDetayKategoriler.AsNoTracking().OrderBy(k => k.Sira).Select(k => new KategoriDto { Id = k.Id, Ad = k.Ad, Sira = k.Sira }).ToListAsync(ct);
         return Ok(list);
     }
 

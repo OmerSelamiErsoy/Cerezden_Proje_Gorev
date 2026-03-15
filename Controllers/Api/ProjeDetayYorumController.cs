@@ -29,6 +29,7 @@ public class ProjeDetayYorumController : ControllerBase
     {
         if (!await _yetki.ProjeGorebilirMiAsync(projeId, ct)) return Forbid();
         var list = await _db.ProjeDetayYorumlar
+            .AsNoTracking()
             .Where(y => y.ProjeDetayId == detayId)
             .OrderByDescending(y => y.InsertDate)
             .Include(y => y.InsertedByUser)
