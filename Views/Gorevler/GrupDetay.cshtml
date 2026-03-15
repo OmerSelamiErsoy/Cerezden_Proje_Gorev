@@ -4,6 +4,19 @@
     var grupAd = ViewData["GrupAd"] as string ?? "Görev Grubu";
 }
 <style>
+    .gorev-aciklama { color: #c2410c !important; }
+    .aciklama-var-link {
+        color: #c2410c !important;
+        cursor: pointer;
+        text-decoration: underline;
+        font-weight: 600;
+        animation: aciklama-blink 1.2s ease-in-out infinite;
+    }
+    .aciklama-var-link:hover { opacity: 0.9; }
+    @@keyframes aciklama-blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+    }
     .atama-link { cursor: pointer; text-decoration: underline; }
     .atama-link:hover { opacity: 0.85; }
     .tamamlanan-iptal-card .tamamlanan-iptal-item {
@@ -128,7 +141,9 @@
                                 <strong class="small">{{ kart.ad }}</strong>
                                 <a href="#" @@click.prevent="yorumAc(kart)" class="text-decoration-none small" title="Yorumlar"><i class="fas fa-comment" :class="(kart.yorumSayisi || 0) > 0 ? 'text-danger' : 'text-success'"></i><span v-if="(kart.yorumSayisi || 0) > 0"> - Mesaj ({{ kart.yorumSayisi }})</span><span v-else> - mesaj yaz</span></a>
                             </div>
-                            <p v-if="kart.aciklama" class="small text-muted mb-1 truncate">{{ kart.aciklama }}</p>
+                            <p v-if="kart.aciklama" class="small mb-1">
+                                <a href="#" class="aciklama-var-link" @@click.prevent="aciklamaPopupAc(kart)">Açıklama Var!</a>
+                            </p>
                             <div class="small text-muted">Oluşturan: {{ kart.olusturanAdSoyad }} - {{ formatDate(kart.olusturmaTarihi) }}</div>
                             <div class="small text-muted">Sorumlu kişi: <span class="text-danger fw-medium">{{ kart.sorumluAdSoyad || '-' }}</span></div>
                             <div class="small text-muted">
@@ -256,6 +271,13 @@
         </div>
     </div></div></div>
 
+    <div class="modal fade" id="aciklamaModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Açıklama - {{ aciklamaPopupAd }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <p class="mb-0 text-break" style="white-space: pre-wrap;">{{ aciklamaPopupMetin }}</p>
+        </div>
+    </div></div></div>
+
     <div class="modal fade" id="logModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
         <div class="modal-header"><h5 class="modal-title">Durum Log - {{ logGorevAd }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
@@ -350,7 +372,9 @@ createApp({
             logGorevAd: '',
             atananlarGorevAd: '',
             atananlarTuru: 0,
-            atananlarListesi: []
+            atananlarListesi: [],
+            aciklamaPopupAd: '',
+            aciklamaPopupMetin: ''
         };
     },
     computed: {
@@ -431,6 +455,7 @@ createApp({
             axios.delete('/api/Gorevler/' + kart.id).then(() => this.yukle()).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
         },
         atananlarAc(kart) { this.atananlarGorevAd = kart.ad; this.atananlarTuru = kart.turu ?? 0; this.atananlarListesi = kart.atananlar && Array.isArray(kart.atananlar) ? kart.atananlar.filter(Boolean) : []; new bootstrap.Modal(document.getElementById('atananlarModal')).show(); },
+        aciklamaPopupAc(kart) { this.aciklamaPopupAd = kart.ad; this.aciklamaPopupMetin = kart.aciklama || ''; new bootstrap.Modal(document.getElementById('aciklamaModal')).show(); },
         logAc(kart) { this.logGorevAd = kart.ad; this.durumLog = []; axios.get('/api/Gorevler/' + kart.id + '/durum-log').then(r => { this.durumLog = r.data; }); new bootstrap.Modal(document.getElementById('logModal')).show(); },
         yorumAc(kart) { this.seciliGorev = kart; this.yeniYorum = ''; axios.get('/api/Gorevler/' + kart.id + '/yorumlar').then(r => { this.gorevYorumlar = r.data; }); new bootstrap.Modal(document.getElementById('yorumModal')).show(); },
         yorumGonder() {
