@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjeGorevYonetimi.Data;
 using ProjeGorevYonetimi.Models.Entities;
+using ProjeGorevYonetimi.Services;
 
 namespace ProjeGorevYonetimi.Controllers.Api;
 
@@ -12,12 +13,19 @@ namespace ProjeGorevYonetimi.Controllers.Api;
 public class ParametreController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
+    private readonly IYetkiService _yetkiService;
 
-    public ParametreController(ApplicationDbContext db) => _db = db;
+    public ParametreController(ApplicationDbContext db, IYetkiService yetkiService)
+    {
+        _db = db;
+        _yetkiService = yetkiService;
+    }
 
     [HttpGet("durumlar")]
     public async Task<ActionResult<List<DurumDto>>> GetDurumlar(CancellationToken ct)
     {
+        if (!_yetkiService.GenelYetkiliMi())
+            return Forbid();
         var list = await _db.Durumlar.AsNoTracking().OrderBy(d => d.Sira).Select(d => new DurumDto { Id = d.Id, Ad = d.Ad, Sira = d.Sira }).ToListAsync(ct);
         return Ok(list);
     }
@@ -25,6 +33,8 @@ public class ParametreController : ControllerBase
     [HttpPost("durumlar")]
     public async Task<ActionResult<DurumDto>> PostDurum([FromBody] DurumDto? dto, CancellationToken ct)
     {
+        if (!_yetkiService.GenelYetkiliMi())
+            return Forbid();
         if (dto == null || string.IsNullOrWhiteSpace(dto.Ad))
             return BadRequest(new { message = "Ad alanı gereklidir." });
         var maxSira = await _db.Durumlar.Select(d => (int?)d.Sira).MaxAsync(ct) ?? 0;
@@ -37,6 +47,8 @@ public class ParametreController : ControllerBase
     [HttpPut("durumlar/{id}")]
     public async Task<IActionResult> PutDurum(int id, [FromBody] DurumDto dto, CancellationToken ct)
     {
+        if (!_yetkiService.GenelYetkiliMi())
+            return Forbid();
         var entity = await _db.Durumlar.FindAsync(new object[] { id }, ct);
         if (entity == null) return NotFound();
         entity.Ad = dto.Ad;
@@ -48,6 +60,8 @@ public class ParametreController : ControllerBase
     [HttpDelete("durumlar/{id}")]
     public async Task<IActionResult> DeleteDurum(int id, CancellationToken ct)
     {
+        if (!_yetkiService.GenelYetkiliMi())
+            return Forbid();
         var entity = await _db.Durumlar.FindAsync(new object[] { id }, ct);
         if (entity == null) return NotFound();
         entity.IsDeleted = true;

@@ -1,7 +1,8 @@
 @{
     Layout = "_AdminLayout";
+    var genelYetkiliMi = ViewBag.GenelYetkiliMi == true;
 }
-<div id="parametre-app" data-vue-page v-cloak>
+<div id="parametre-app" data-vue-page data-genel-yetkili="@(genelYetkiliMi ? "true" : "false")" v-cloak>
     <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
         <div class="w-100 text-center">
             <div class="small text-muted mb-2">Yükleniyor...</div>
@@ -12,10 +13,10 @@
     </div>
     <div class="v-cloak-hidden">
     <ul class="nav nav-tabs mb-4">
-        <li class="nav-item"><a class="nav-link" :class="{ active: tab === 'durum' }" href="#" @@click.prevent="tab='durum'">Durumlar</a></li>
+        <li class="nav-item" v-if="genelYetkiliMi"><a class="nav-link" :class="{ active: tab === 'durum' }" href="#" @@click.prevent="tab='durum'">Durumlar</a></li>
         <li class="nav-item"><a class="nav-link" :class="{ active: tab === 'kategori' }" href="#" @@click.prevent="tab='kategori'">Kategoriler</a></li>
     </ul>
-    <div v-show="tab === 'durum'">
+    <div v-show="genelYetkiliMi && tab === 'durum'">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">Proje / Adım Durumları<button class="btn btn-primary btn-sm" @@click="durumEkle()"><i class="fas fa-plus"></i> Ekle</button></div>
             <table class="table mb-0"><thead><tr><th>Ad</th><th>Sira</th><th></th></tr></thead><tbody>
@@ -66,8 +67,11 @@
 const { createApp } = Vue;
 createApp({
     data() {
+        var root = document.getElementById('parametre-app');
+        var genelYetkiliMi = root && root.getAttribute('data-genel-yetkili') === 'true';
         return {
-            tab: 'durum',
+            genelYetkiliMi: genelYetkiliMi,
+            tab: genelYetkiliMi ? 'durum' : 'kategori',
             durumlar: [],
             kategoriler: [],
             durumForm: { id: null, ad: '', sira: 0 },
@@ -75,10 +79,10 @@ createApp({
         };
     },
     mounted() {
-        Promise.all([
-            axios.get('/api/Parametre/durumlar').then(r => { this.durumlar = r.data; }),
-            axios.get('/api/Parametre/kategoriler').then(r => { this.kategoriler = r.data; })
-        ]).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
+        var promises = [ axios.get('/api/Parametre/kategoriler').then(r => { this.kategoriler = r.data; }) ];
+        if (this.genelYetkiliMi)
+            promises.push(axios.get('/api/Parametre/durumlar').then(r => { this.durumlar = r.data; }));
+        Promise.all(promises).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
     },
     methods: {
         durumYukle() { return axios.get('/api/Parametre/durumlar').then(r => { this.durumlar = r.data; }); },

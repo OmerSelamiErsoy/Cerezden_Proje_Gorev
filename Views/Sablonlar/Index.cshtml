@@ -85,6 +85,15 @@
     #sablon-app #projeBaslatModal .paylasilacak-kisi-item .custom-checkbox-wrap .check-icon svg { width: 14px; height: 14px; stroke: #fff; }
     #sablon-app #projeBaslatModal .paylasilacak-kisi-item .kisi-adi { flex: 1; font-weight: 500; color: #1e293b; }
     #sablon-app #projeBaslatModal .paylasilacak-kisi-item .kisi-ceptel { font-size: 0.875rem; color: #64748b; }
+    /* Boş durum (şablon yok) - Projeler ile aynı tasarım */
+    #sablon-app .sablon-empty {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: #64748b;
+    }
+    #sablon-app .sablon-empty .empty-icon { font-size: 2.5rem; color: #cbd5e1; margin-bottom: 1rem; }
+    #sablon-app .sablon-empty .empty-title { font-weight: 600; color: #475569; margin-bottom: 0.25rem; }
+    #sablon-app .sablon-empty .btn-primary { color: #fff !important; }
 </style>
 <div id="sablon-app" data-vue-page v-cloak>
     <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
@@ -123,7 +132,16 @@
                             </div>
                         </td>
                     </tr>
-                    <tr v-if="sablonlar.length === 0"><td colspan="5" class="text-center text-muted py-4">Şablon yok.</td></tr>
+                    <tr v-if="sablonlar.length === 0">
+                        <td colspan="5" class="p-0">
+                            <div class="sablon-empty">
+                                <div class="empty-icon"><i class="fas fa-copy"></i></div>
+                                <div class="empty-title">Henüz şablon yok</div>
+                                <p class="small mb-3">İlk şablonunuzu oluşturmak için aşağıdaki butonu kullanın.</p>
+                                <button type="button" class="btn btn-primary btn-sm text-white" @@click="sablonEkle()"><i class="fas fa-plus me-1"></i> Yeni Şablon</button>
+                            </div>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
