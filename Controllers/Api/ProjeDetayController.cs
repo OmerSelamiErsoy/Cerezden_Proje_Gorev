@@ -132,6 +132,24 @@ public class ProjeDetayController : ControllerBase
         return Ok();
     }
 
+    /// <summary>Adım sırasını günceller. Body: sıralı detay id listesi.</summary>
+    [HttpPut("sira")]
+    public async Task<IActionResult> SiraGuncelle(int projeId, [FromBody] SiraGuncelleDto dto, CancellationToken ct)
+    {
+        if (!await _yetki.ProjeGorebilirMiAsync(projeId, ct)) return Forbid();
+        if (dto.DetayIds == null || dto.DetayIds.Count == 0) return Ok();
+        var entities = await _db.ProjeDetaylar
+            .Where(d => d.ProjeId == projeId && dto.DetayIds.Contains(d.Id))
+            .ToListAsync(ct);
+        for (var i = 0; i < dto.DetayIds.Count; i++)
+        {
+            var e = entities.FirstOrDefault(x => x.Id == dto.DetayIds[i]);
+            if (e != null) e.Sira = i + 1;
+        }
+        await _db.SaveChangesAsync(ct);
+        return Ok();
+    }
+
     /// <summary>Seçilen adımların sorumlu kişisini toplu günceller.</summary>
     [HttpPut("sorumlu-guncelle")]
     public async Task<IActionResult> TopluSorumluGuncelle(int projeId, [FromBody] TopluSorumluGuncelleDto dto, CancellationToken ct)
@@ -196,4 +214,9 @@ public class TopluSorumluGuncelleDto
 {
     public List<int> DetayIds { get; set; } = new();
     public int? SorumluKullaniciId { get; set; }
+}
+
+public class SiraGuncelleDto
+{
+    public List<int> DetayIds { get; set; } = new();
 }

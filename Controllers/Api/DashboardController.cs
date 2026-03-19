@@ -13,12 +13,14 @@ public class DashboardController : ControllerBase
     private readonly ApplicationDbContext _db;
     private readonly IProjeService _projeService;
     private readonly ICurrentUserService _currentUser;
+    private readonly IYetkiService _yetki;
 
-    public DashboardController(ApplicationDbContext db, IProjeService projeService, ICurrentUserService currentUser)
+    public DashboardController(ApplicationDbContext db, IProjeService projeService, ICurrentUserService currentUser, IYetkiService yetki)
     {
         _db = db;
         _projeService = projeService;
         _currentUser = currentUser;
+        _yetki = yetki;
     }
 
     [HttpGet]
@@ -47,13 +49,15 @@ public class DashboardController : ControllerBase
             .ToList();
 
         var gorevGrubuSayisi = await _db.GorevGruplar.AsNoTracking().CountAsync(ct);
+        var meGenelYetkiliMi = _yetki.GenelYetkiliMi();
 
         return Ok(new DashboardDto
         {
             ProjeSayisi = projeler.Count,
             AktifProjeler = aktifProjeler,
             GorevDurumOzeti = gorevDurumOzeti,
-            GorevGrubuSayisi = gorevGrubuSayisi
+            GorevGrubuSayisi = gorevGrubuSayisi,
+            MeGenelYetkiliMi = meGenelYetkiliMi
         });
     }
 }
@@ -64,6 +68,7 @@ public class DashboardDto
     public List<ProjeGorevYonetimi.Services.ProjeListDto> AktifProjeler { get; set; } = new();
     public List<GorevDurumOzetDto> GorevDurumOzeti { get; set; } = new();
     public int GorevGrubuSayisi { get; set; }
+    public bool MeGenelYetkiliMi { get; set; }
 }
 
 public class GorevDurumOzetDto

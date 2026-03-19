@@ -166,7 +166,7 @@
                                             <li class="px-2 pb-2">
                                                 <div class="d-flex flex-wrap gap-1">
                                                     <button v-for="c in renkPaleti" :key="c" type="button" class="btn rounded-circle p-2 border" :style="{ background: c }" @@click="renkSecildi(kart, c)" title="Renk seç"></button>
-                                                    <button type="button" class="btn btn-outline-secondary btn-sm" @@click="renkSecildi(kart, null)">Kaldır</button>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" @@click="renkSecildi(kart, null)"><i class="fas fa-eraser me-1"></i> Kaldır</button>
                                                 </div>
                                             </li>
                                         </ul>
@@ -204,7 +204,7 @@
                                         <div class="small text-muted mb-2">Sorumlu kişi: <span class="text-danger fw-medium">{{ k.sorumluAdSoyad || '-' }}</span></div>
                                         <div class="d-flex align-items-center flex-wrap gap-2">
                                             <a href="#" class="text-decoration-none small" @@click.prevent="yorumAc(k)"><i class="fas fa-comment" :class="(k.yorumSayisi || 0) > 0 ? 'text-danger' : 'text-success'"></i><span v-if="(k.yorumSayisi || 0) > 0"> - Mesaj ({{ k.yorumSayisi }})</span><span v-else> - mesaj yaz</span></a>
-                                            <button type="button" class="btn btn-sm btn-outline-secondary py-0" @@click="logAc(k)">Log</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary py-0" @@click="logAc(k)"><i class="fas fa-history me-1"></i> Log</button>
                                         </div>
                                     </div>
                                     <div class="dropdown flex-shrink-0">
@@ -233,7 +233,7 @@
                                         <div class="small text-muted mb-2">Sorumlu kişi: <span class="text-danger fw-medium">{{ k.sorumluAdSoyad || '-' }}</span></div>
                                         <div class="d-flex align-items-center flex-wrap gap-2">
                                             <a href="#" class="text-decoration-none small" @@click.prevent="yorumAc(k)"><i class="fas fa-comment" :class="(k.yorumSayisi || 0) > 0 ? 'text-danger' : 'text-success'"></i><span v-if="(k.yorumSayisi || 0) > 0"> - Mesaj ({{ k.yorumSayisi }})</span><span v-else> - mesaj yaz</span></a>
-                                            <button type="button" class="btn btn-sm btn-outline-secondary py-0" @@click="logAc(k)">Log</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary py-0" @@click="logAc(k)"><i class="fas fa-history me-1"></i> Log</button>
                                         </div>
                                     </div>
                                     <div class="dropdown flex-shrink-0">
@@ -315,7 +315,7 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button><button type="button" class="btn btn-primary" @@click="gorevKaydet">Kaydet</button></div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> İptal</button><button type="button" class="btn btn-primary" @@click="gorevKaydet"><i class="fas fa-save me-1"></i> Kaydet</button></div>
         </div></div>
     </div>
 
@@ -342,7 +342,7 @@
                 <label class="form-label small text-muted">Yeni yorum</label>
                 <textarea v-model="yeniYorum" class="form-control mb-2" rows="2" placeholder="Yorum yazın..."></textarea>
                 <div class="d-flex justify-content-end">
-                    <button class="btn btn-primary btn-sm" @@click="yorumGonder">Gönder</button>
+                    <button class="btn btn-primary btn-sm" @@click="yorumGonder"><i class="fas fa-paper-plane me-1"></i> Gönder</button>
                 </div>
             </div>
         </div>

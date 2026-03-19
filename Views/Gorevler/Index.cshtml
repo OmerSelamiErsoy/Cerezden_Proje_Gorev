@@ -80,7 +80,7 @@
             </div>
         </div>
 
-        <div class="gorevler-stats-section">
+        <div class="gorevler-stats-section" v-if="genelYetkiliMi">
             <div class="section-title"><i class="fas fa-chart-pie me-1"></i> Toplam aktif görev adetleri</div>
             <div class="row g-2 mb-4">
                 <div class="col-md-4">
@@ -130,7 +130,7 @@
                             </div>
                             <p v-if="g.aciklama" class="small text-muted mb-2">{{ g.aciklama }}</p>
                             <div class="gorev-count">{{ g.gorevSayisi }} görev</div>
-                            <a :href="'/Gorevler/GrupDetay/' + g.id" class="btn btn-outline-primary btn-sm">Grup detay</a>
+                            <a :href="'/Gorevler/GrupDetay/' + g.id" class="btn btn-outline-primary btn-sm"><i class="fas fa-list me-1"></i> Grup detay</a>
                         </div>
                     </div>
                 </div>
@@ -146,7 +146,7 @@
                         <div class="mb-2"><label class="form-label">Grup Adı *</label><input v-model="grupForm.ad" class="form-control" placeholder="Örn: Sprint 1" /></div>
                         <div class="mb-2"><label class="form-label">Açıklama</label><textarea v-model="grupForm.aciklama" class="form-control" rows="2" placeholder="İsteğe bağlı"></textarea></div>
                     </div>
-                    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button><button type="button" class="btn btn-primary" @@click="grupKaydet">Kaydet</button></div>
+                    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> İptal</button><button type="button" class="btn btn-primary" @@click="grupKaydet"><i class="fas fa-save me-1"></i> Kaydet</button></div>
                 </div>
             </div>
         </div>

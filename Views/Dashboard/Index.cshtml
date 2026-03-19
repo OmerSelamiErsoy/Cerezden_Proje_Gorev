@@ -118,7 +118,7 @@
             </div>
         </div>
 
-        <div class="dashboard-section dashboard-durum-section">
+        <div class="dashboard-section dashboard-durum-section" v-if="genelYetkiliMi">
             <div class="dashboard-section-title sorumlu"><i class="fas fa-user-check"></i> Sorumlusu olduğum aktif görev adetleri</div>
             <div class="row g-2">
                 <div class="col-md-4">
@@ -180,7 +180,7 @@
             <div class="dashboard-projeler-wrap card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span>Aktif Projeler</span>
-                    <a href="/Projeler" class="btn btn-sm btn-outline-primary">Tüm Projeler</a>
+                    <a href="/Projeler" class="btn btn-sm btn-outline-primary"><i class="fas fa-folder-open me-1"></i> Tüm Projeler</a>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover mb-0 align-middle">
@@ -208,7 +208,7 @@
                                 <td class="small">{{ p.sorumluAdSoyad || '-' }}</td>
                                 <td>
                                     <div class="dropdown" data-bs-popper-config='{"strategy":"fixed"}'>
-                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">İşlemler</button>
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"><i class="fas fa-cog me-1"></i> İşlemler</button>
                                         <ul class="dropdown-menu dropdown-menu-end">
                                             <li><a class="dropdown-item text-success" :href="'/Projeler/Detay/' + p.id"><i class="fas fa-eye me-1"></i> Detay</a></li>
                                             <li><a class="dropdown-item text-primary" :href="'/Projeler/Edit/' + p.id"><i class="fas fa-edit me-1"></i> Güncelle</a></li>
@@ -234,7 +234,8 @@ createApp({
             gorevDurumOzeti: [],
             gorevGrubuSayisi: 0,
             durumOzet: [],
-            durumOzetSorumlu: []
+            durumOzetSorumlu: [],
+            genelYetkiliMi: false
         };
     },
     computed: {
@@ -273,6 +274,7 @@ createApp({
                 this.aktifProjeler = d.aktifProjeler || [];
                 this.gorevDurumOzeti = d.gorevDurumOzeti || [];
                 this.gorevGrubuSayisi = d.gorevGrubuSayisi ?? 0;
+                this.genelYetkiliMi = !!d.meGenelYetkiliMi;
             }),
             axios.get('/api/Gorevler/durum-ozet').then(r => { this.durumOzet = Array.isArray(r.data) ? r.data : []; }),
             axios.get('/api/Gorevler/durum-ozet?sorumluOldugum=true').then(r => { this.durumOzetSorumlu = Array.isArray(r.data) ? r.data : []; })

@@ -104,6 +104,25 @@ public class SablonController : ControllerBase
         return Ok();
     }
 
+    /// <summary>Şablon adımlarının sırasını günceller.</summary>
+    [HttpPut("{id}/detay-sira")]
+    public async Task<IActionResult> DetaySiraGuncelle(int id, [FromBody] SablonSiraGuncelleDto dto, CancellationToken ct)
+    {
+        var sablon = await _db.ProjeSablonlar.FindAsync(new object[] { id }, ct);
+        if (sablon == null) return NotFound();
+        if (dto.DetayIds == null || dto.DetayIds.Count == 0) return Ok();
+        var entities = await _db.ProjeSablonDetaylar
+            .Where(d => d.ProjeSablonId == id && dto.DetayIds.Contains(d.Id))
+            .ToListAsync(ct);
+        for (var i = 0; i < dto.DetayIds.Count; i++)
+        {
+            var e = entities.FirstOrDefault(x => x.Id == dto.DetayIds[i]);
+            if (e != null) e.Sira = i + 1;
+        }
+        await _db.SaveChangesAsync(ct);
+        return Ok();
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
@@ -176,3 +195,4 @@ public class SablonDetayItemDto { public int Id { get; set; } public int? Katego
 public class SablonCreateDto { public string Ad { get; set; } = ""; public string? Aciklama { get; set; } public List<SablonDetayItemCreateDto>? Detaylar { get; set; } }
 public class SablonDetayItemCreateDto { public int? KategoriId { get; set; } public string AdimAdi { get; set; } = ""; public string? Aciklama { get; set; } }
 public class ProjeBaslatDto { public string? Ad { get; set; } public DateTime? BaslangicTarihi { get; set; } public DateTime? PlanlananBitisTarihi { get; set; } public int? SorumluKullaniciId { get; set; } public int YetkiTipi { get; set; } public List<int>? YetkiKullaniciIds { get; set; } }
+public class SablonSiraGuncelleDto { public List<int> DetayIds { get; set; } = new(); }

@@ -20,7 +20,7 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">Proje / Adım Durumları<button class="btn btn-primary btn-sm" @@click="durumEkle()"><i class="fas fa-plus"></i> Ekle</button></div>
             <table class="table mb-0"><thead><tr><th>Ad</th><th>Sira</th><th></th></tr></thead><tbody>
-                <tr v-for="d in durumlar" :key="d.id"><td>{{ d.ad }}</td><td>{{ d.sira }}</td><td><button class="btn btn-sm btn-outline-secondary" @@click="durumDuzenle(d)">Düzenle</button> <button class="btn btn-sm btn-outline-danger" @@click="durumSil(d.id)">Sil</button></td></tr>
+                <tr v-for="d in durumlar" :key="d.id"><td>{{ d.ad }}</td><td>{{ d.sira }}</td><td><button class="btn btn-sm btn-outline-secondary" @@click="durumDuzenle(d)"><i class="fas fa-edit me-1"></i> Düzenle</button> <button class="btn btn-sm btn-outline-danger" @@click="durumSil(d.id)"><i class="fas fa-trash me-1"></i> Sil</button></td></tr>
             </tbody></table>
         </div>
     </div>
@@ -28,7 +28,7 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">Proje Detay Kategorileri<button class="btn btn-primary btn-sm" @@click="kategoriEkle()"><i class="fas fa-plus"></i> Ekle</button></div>
             <table class="table mb-0"><thead><tr><th>Ad</th><th>Sira</th><th></th></tr></thead><tbody>
-                <tr v-for="k in kategoriler" :key="k.id"><td>{{ k.ad }}</td><td>{{ k.sira }}</td><td><button class="btn btn-sm btn-outline-secondary" @@click="kategoriDuzenle(k)">Düzenle</button> <button class="btn btn-sm btn-outline-danger" @@click="kategoriSil(k.id)">Sil</button></td></tr>
+                <tr v-for="k in kategoriler" :key="k.id"><td>{{ k.ad }}</td><td>{{ k.sira }}</td><td><button class="btn btn-sm btn-outline-secondary" @@click="kategoriDuzenle(k)"><i class="fas fa-edit me-1"></i> Düzenle</button> <button class="btn btn-sm btn-outline-danger" @@click="kategoriSil(k.id)"><i class="fas fa-trash me-1"></i> Sil</button></td></tr>
             </tbody></table>
         </div>
     </div>
@@ -44,7 +44,7 @@
                 <input v-model.number="durumForm.sira" type="number" class="form-control" />
             </div>
         </div>
-        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button><button type="button" class="btn btn-primary" @@click="durumKaydet">Kaydet</button></div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> İptal</button><button type="button" class="btn btn-primary" @@click="durumKaydet"><i class="fas fa-save me-1"></i> Kaydet</button></div>
     </div></div></div>
     <div class="modal fade" id="kategoriModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
         <div class="modal-header"><h5 class="modal-title">{{ kategoriForm.id ? 'Düzenle' : 'Yeni Kategori' }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
@@ -58,7 +58,7 @@
                 <input v-model.number="kategoriForm.sira" type="number" class="form-control" />
             </div>
         </div>
-        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button><button type="button" class="btn btn-primary" @@click="kategoriKaydet">Kaydet</button></div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> İptal</button><button type="button" class="btn btn-primary" @@click="kategoriKaydet"><i class="fas fa-save me-1"></i> Kaydet</button></div>
     </div></div></div>
     </div>
 </div>

@@ -2,10 +2,30 @@
     Layout = "_AdminLayout";
     var sablonId = ViewData["SablonId"] as int? ?? 0;
 }
+<style>
+    /* Sürükle tutamacı - 3x3 nokta (keypad) ikonu */
+    #sablon-detay-app .adim-drag-handle {
+        display: grid;
+        grid-template-columns: repeat(3, 4px);
+        grid-template-rows: repeat(3, 4px);
+        gap: 2px;
+        cursor: grab;
+        padding: 6px;
+        margin: -6px 4px -6px -6px;
+        border-radius: 4px;
+        color: #94a3b8;
+        flex-shrink: 0;
+    }
+    #sablon-detay-app .adim-drag-handle:active { cursor: grabbing; }
+    #sablon-detay-app .adim-drag-handle:hover { color: #64748b; background: #f1f5f9; }
+    #sablon-detay-app .adim-drag-handle span { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+    #sablon-detay-app .list-group-item.sortable-ghost { opacity: 0.6; background: #f1f5f9; }
+    #sablon-detay-app .list-group-item.sortable-drag { opacity: 1; }
+</style>
 <div id="sablon-detay-app" data-sablon-id="@sablonId" v-cloak>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h5 class="mb-0" v-if="sablon">{{ sablon.ad }}</h5>
-        <a href="/Sablonlar" class="btn btn-outline-secondary btn-sm">Listeye Dön</a>
+        <a href="/Sablonlar" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Listeye Dön</a>
     </div>
     <div class="card mb-4" v-if="sablon">
         <div class="card-body">
@@ -15,8 +35,11 @@
     </div>
     <div class="card" v-if="sablon">
         <div class="card-header">Şablon Adımları</div>
-        <ul class="list-group list-group-flush">
-            <li v-for="(d, i) in (sablon.detaylar || [])" :key="d.id" class="list-group-item d-flex align-items-center gap-2">
+        <ul id="sablon-adimlar-list" class="list-group list-group-flush">
+            <li v-for="(d, i) in (sablon.detaylar || [])" :key="d.id" :data-id="d.id" class="list-group-item d-flex align-items-center gap-2">
+                <div class="adim-drag-handle" title="Sıralamak için sürükleyin" aria-label="Sıra tutamacı">
+                    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
                 <span class="text-muted small" style="min-width:1.5rem">{{ i + 1 }}.</span>
                 <span class="badge bg-light text-dark" v-if="d.kategoriAd">{{ d.kategoriAd }}</span>
                 <strong>{{ d.adimAdi }}</strong>
@@ -28,13 +51,38 @@
     <div v-if="!sablon && yuklendi" class="alert alert-warning">Şablon bulunamadı.</div>
 </div>
 @section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
 const { createApp } = Vue;
 const sablonId = document.getElementById('sablon-detay-app').dataset.sablonId;
 createApp({
-    data() { return { sablon: null, yuklendi: false }; },
+    data() { return { sablon: null, yuklendi: false, sortableInstance: null }; },
     mounted() {
-        axios.get('/api/Sablon/' + sablonId).then(r => { this.sablon = r.data; this.yuklendi = true; }).catch(() => { this.yuklendi = true; });
+        axios.get('/api/Sablon/' + sablonId).then(r => { this.sablon = r.data; this.yuklendi = true; this.$nextTick(() => this.initSortable()); }).catch(() => { this.yuklendi = true; });
+    },
+    methods: {
+        yukle() { return axios.get('/api/Sablon/' + sablonId).then(r => { this.sablon = r.data; this.$nextTick(() => this.initSortable()); }); },
+        initSortable() {
+            if (this.sortableInstance) { this.sortableInstance.destroy(); this.sortableInstance = null; }
+            var listEl = document.getElementById('sablon-adimlar-list');
+            if (!listEl || !window.Sortable || !this.sablon || !this.sablon.detaylar || this.sablon.detaylar.length === 0) return;
+            var self = this;
+            this.sortableInstance = window.Sortable.create(listEl, {
+                handle: '.adim-drag-handle',
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                dragClass: 'sortable-drag',
+                onEnd: function(evt) {
+                    var ids = [];
+                    for (var i = 0; i < listEl.children.length; i++) {
+                        var id = parseInt(listEl.children[i].getAttribute('data-id'), 10);
+                        if (!isNaN(id)) ids.push(id);
+                    }
+                    if (ids.length === 0) return;
+                    axios.put('/api/Sablon/' + sablonId + '/detay-sira', { detayIds: ids }).then(function() { self.yukle(); }).catch(function(err) { alert(err.response && err.response.data && err.response.data.message ? err.response.data.message : 'Sıra güncellenemedi.'); self.yukle(); });
+                }
+            });
+        }
     }
 }).mount('#sablon-detay-app');
 </script>

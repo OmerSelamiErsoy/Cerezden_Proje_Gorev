@@ -33,7 +33,8 @@ public class GorevlerController : ControllerBase
 
         var gorevIds = await _db.Gorevler.AsNoTracking().Where(g => g.OlusturanKullaniciId == userId).Select(g => g.Id).ToListAsync(ct);
         var atananIds = await _db.GorevAtamalar.AsNoTracking().Where(a => a.KullaniciId == userId).Select(a => a.GorevId).ToListAsync(ct);
-        var tumIds = gorevIds.Union(atananIds).Distinct().ToList();
+        var sorumluIds = await _db.Gorevler.AsNoTracking().Where(g => g.SorumluKullaniciId == userId).Select(g => g.Id).ToListAsync(ct);
+        var tumIds = gorevIds.Union(atananIds).Union(sorumluIds).Distinct().ToList();
 
         var aktifGorevler = await _db.Gorevler
             .AsNoTracking()
