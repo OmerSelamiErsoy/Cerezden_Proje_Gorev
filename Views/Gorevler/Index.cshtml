@@ -117,7 +117,10 @@
                     <div class="card gorevler-grup-card">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
-                                <h6 class="card-title mb-0">{{ g.ad }}</h6>
+                                            <h6 class="card-title mb-0">
+                                                {{ g.ad }}
+                                                <span v-if="genelYetkiliMi && g.olusturanAdSoyad"> - {{ g.olusturanAdSoyad }}</span>
+                                            </h6>
                                 <div class="d-flex align-items-center gap-1">
                                     <span v-if="g.benimGrubum" class="badge bg-primary">Benim grubum</span>
                                     <div v-if="g.benimGrubum || genelYetkiliMi" class="dropdown">

@@ -29,6 +29,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<GorevYorum> GorevYorumlar => Set<GorevYorum>();
     public DbSet<GorevYorumDosya> GorevYorumDosyalar => Set<GorevYorumDosya>();
     public DbSet<GorevDurumLog> GorevDurumLoglar => Set<GorevDurumLog>();
+    public DbSet<ProjeDetayDurumLog> ProjeDetayDurumLoglar => Set<ProjeDetayDurumLog>();
     public DbSet<CrossAppLoginToken> CrossAppLoginTokens => Set<CrossAppLoginToken>();
 
     private int DefaultUserId => _userIdAccessor?.CurrentUserId ?? 1;
@@ -154,6 +155,27 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(l => l.EskiDurumId)
             .OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<GorevDurumLog>()
+            .HasOne(l => l.YeniDurum)
+            .WithMany()
+            .HasForeignKey(l => l.YeniDurumId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ProjeDetayDurumLog>()
+            .HasOne(l => l.ProjeDetay)
+            .WithMany()
+            .HasForeignKey(l => l.ProjeDetayId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ProjeDetayDurumLog>()
+            .HasOne(l => l.DegistirenKullanici)
+            .WithMany()
+            .HasForeignKey(l => l.DegistirenKullaniciId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ProjeDetayDurumLog>()
+            .HasOne(l => l.EskiDurum)
+            .WithMany()
+            .HasForeignKey(l => l.EskiDurumId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ProjeDetayDurumLog>()
             .HasOne(l => l.YeniDurum)
             .WithMany()
             .HasForeignKey(l => l.YeniDurumId)

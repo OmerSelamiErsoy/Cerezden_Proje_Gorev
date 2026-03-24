@@ -90,12 +90,26 @@ public class ProjeDetayController : ControllerBase
         if (!await _yetki.ProjeGorebilirMiAsync(projeId, ct)) return Forbid();
         var entity = await _db.ProjeDetaylar.FirstOrDefaultAsync(d => d.Id == id && d.ProjeId == projeId, ct);
         if (entity == null) return NotFound();
+        var eskiDurumId = entity.DurumId;
         entity.KategoriId = dto.KategoriId;
         entity.AdimAdi = dto.AdimAdi;
         entity.DurumId = dto.DurumId;
         entity.SorumluKullaniciId = dto.SorumluKullaniciId;
         entity.Aciklama = dto.Aciklama;
         entity.Sira = dto.Sira;
+
+        if (eskiDurumId != dto.DurumId)
+        {
+            var userId = _currentUser.GetCurrentUserId();
+            _db.ProjeDetayDurumLoglar.Add(new ProjeDetayDurumLog
+            {
+                ProjeDetayId = entity.Id,
+                EskiDurumId = eskiDurumId,
+                YeniDurumId = dto.DurumId,
+                DegistirenKullaniciId = userId,
+                DegistirmeTarihi = DateTime.UtcNow
+            });
+        }
 
         await _db.SaveChangesAsync(ct);
 
@@ -118,8 +132,20 @@ public class ProjeDetayController : ControllerBase
         var entities = await _db.ProjeDetaylar
             .Where(d => d.ProjeId == projeId && dto.DetayIds.Contains(d.Id))
             .ToListAsync(ct);
+        var userId = _currentUser.GetCurrentUserId();
         foreach (var e in entities)
+        {
+            if (e.DurumId == dto.DurumId) continue;
+            _db.ProjeDetayDurumLoglar.Add(new ProjeDetayDurumLog
+            {
+                ProjeDetayId = e.Id,
+                EskiDurumId = e.DurumId,
+                YeniDurumId = dto.DurumId,
+                DegistirenKullaniciId = userId,
+                DegistirmeTarihi = DateTime.UtcNow
+            });
             e.DurumId = dto.DurumId;
+        }
         await _db.SaveChangesAsync(ct);
 
         var detaylar = await _db.ProjeDetaylar.Where(d => d.ProjeId == projeId).ToListAsync(ct);
@@ -130,6 +156,31 @@ public class ProjeDetayController : ControllerBase
             if (proje != null) { proje.ProjeDurumId = tamamlandiId; await _db.SaveChangesAsync(ct); }
         }
         return Ok();
+    }
+
+    /// <summary>Belirli adımın durum değişiklik geçmişi (logları).</summary>
+    [HttpGet("detaylar/{detayId:int}/durum-log")]
+    public async Task<ActionResult<List<ProjeDetayDurumLogDto>>> DurumLog(int projeId, int detayId, CancellationToken ct)
+    {
+        if (!await _yetki.ProjeGorebilirMiAsync(projeId, ct)) return Forbid();
+
+        var logs = await _db.ProjeDetayDurumLoglar
+            .AsNoTracking()
+            .Where(l => l.ProjeDetayId == detayId && l.ProjeDetay.ProjeId == projeId)
+            .OrderByDescending(l => l.DegistirmeTarihi)
+            .Select(l => new ProjeDetayDurumLogDto
+            {
+                Id = l.Id,
+                EskiDurumId = l.EskiDurumId,
+                EskiDurumAd = l.EskiDurum != null ? l.EskiDurum.Ad : null,
+                YeniDurumId = l.YeniDurumId,
+                YeniDurumAd = l.YeniDurum != null ? l.YeniDurum.Ad : "",
+                DegistirenAdSoyad = l.DegistirenKullanici.AdSoyad,
+                DegistirmeTarihi = l.DegistirmeTarihi
+            })
+            .ToListAsync(ct);
+
+        return Ok(logs);
     }
 
     /// <summary>Adım sırasını günceller. Body: sıralı detay id listesi.</summary>
@@ -219,4 +270,15 @@ public class TopluSorumluGuncelleDto
 public class SiraGuncelleDto
 {
     public List<int> DetayIds { get; set; } = new();
+}
+
+public class ProjeDetayDurumLogDto
+{
+    public int Id { get; set; }
+    public int? EskiDurumId { get; set; }
+    public string? EskiDurumAd { get; set; }
+    public int YeniDurumId { get; set; }
+    public string? YeniDurumAd { get; set; }
+    public string DegistirenAdSoyad { get; set; } = "";
+    public DateTime DegistirmeTarihi { get; set; }
 }

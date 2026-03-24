@@ -24,8 +24,6 @@ public class ParametreController : ControllerBase
     [HttpGet("durumlar")]
     public async Task<ActionResult<List<DurumDto>>> GetDurumlar(CancellationToken ct)
     {
-        if (!_yetkiService.GenelYetkiliMi())
-            return Forbid();
         var list = await _db.Durumlar.AsNoTracking().OrderBy(d => d.Sira).Select(d => new DurumDto { Id = d.Id, Ad = d.Ad, Sira = d.Sira }).ToListAsync(ct);
         return Ok(list);
     }

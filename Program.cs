@@ -104,6 +104,30 @@ using (var scope = app.Services.CreateScope())
             CREATE INDEX [IX_GorevDurumLoglar_YeniDurumId] ON [GorevDurumLoglar] ([YeniDurumId]);
             CREATE INDEX [IX_GorevDurumLoglar_DegistirenKullaniciId] ON [GorevDurumLoglar] ([DegistirenKullaniciId]);
         END");
+
+    // ProjeDetayDurumLoglar tablosu yoksa oluştur (proje adım durum değişiklik logu)
+    await db.Database.ExecuteSqlRawAsync(@"
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'ProjeDetayDurumLoglar')
+        BEGIN
+            CREATE TABLE [dbo].[ProjeDetayDurumLoglar] (
+                [Id] int NOT NULL IDENTITY(1,1),
+                [ProjeDetayId] int NOT NULL,
+                [EskiDurumId] int NULL,
+                [YeniDurumId] int NOT NULL,
+                [DegistirenKullaniciId] int NOT NULL,
+                [DegistirmeTarihi] datetime2 NOT NULL,
+                CONSTRAINT [PK_ProjeDetayDurumLoglar] PRIMARY KEY ([Id]),
+                CONSTRAINT [FK_ProjeDetayDurumLoglar_ProjeDetaylar_ProjeDetayId] FOREIGN KEY ([ProjeDetayId]) REFERENCES [ProjeDetaylar] ([Id]) ON DELETE NO ACTION,
+                CONSTRAINT [FK_ProjeDetayDurumLoglar_Durumlar_EskiDurumId] FOREIGN KEY ([EskiDurumId]) REFERENCES [Durumlar] ([Id]) ON DELETE NO ACTION,
+                CONSTRAINT [FK_ProjeDetayDurumLoglar_Durumlar_YeniDurumId] FOREIGN KEY ([YeniDurumId]) REFERENCES [Durumlar] ([Id]) ON DELETE NO ACTION,
+                CONSTRAINT [FK_ProjeDetayDurumLoglar_Kullanicilar_DegistirenKullaniciId] FOREIGN KEY ([DegistirenKullaniciId]) REFERENCES [Kullanicilar] ([Id]) ON DELETE NO ACTION
+            );
+            CREATE INDEX [IX_ProjeDetayDurumLoglar_ProjeDetayId] ON [ProjeDetayDurumLoglar] ([ProjeDetayId]);
+            CREATE INDEX [IX_ProjeDetayDurumLoglar_EskiDurumId] ON [ProjeDetayDurumLoglar] ([EskiDurumId]);
+            CREATE INDEX [IX_ProjeDetayDurumLoglar_YeniDurumId] ON [ProjeDetayDurumLoglar] ([YeniDurumId]);
+            CREATE INDEX [IX_ProjeDetayDurumLoglar_DegistirenKullaniciId] ON [ProjeDetayDurumLoglar] ([DegistirenKullaniciId]);
+        END");
+
     // Gorevler.SorumluKullaniciId kolonu yoksa ekle
     await db.Database.ExecuteSqlRawAsync(@"
         IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Gorevler') AND name = 'SorumluKullaniciId')
