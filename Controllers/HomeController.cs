@@ -51,6 +51,9 @@ public class HomeController : Controller
 
         var cookieKey = _config.GetValue<string>("UserCookieKey") ?? "UCKAXDFT";
         HttpContext.Session.SetInt32(CurrentUserMiddleware.SessionCerezdenKullaniciIdKey, user.CerezdenKullaniciId);
+        // Aynı cerezdenKullaniciId için birden fazla Kullanici kaydı olasılığına karşı
+        // oturumda doğrudan Kullanici.Id'yi sabitleyelim.
+        HttpContext.Session.SetInt32(CurrentUserMiddleware.SessionKullaniciIdKey, user.Id);
         var cookieOptions = new CookieOptions
         {
             HttpOnly = true,

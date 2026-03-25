@@ -18,9 +18,24 @@ public class CurrentUserService : ICurrentUserService
 
     public int GetCurrentUserId()
     {
+        var ctx = _httpContextAccessor.HttpContext;
+        if (ctx != null)
+        {
+            // Session'da Kullanici.Id sabitse doğrudan onu kullan.
+            var sessionUserId = ctx.Session.GetInt32(Middleware.CurrentUserMiddleware.SessionKullaniciIdKey);
+            if (sessionUserId.HasValue) return sessionUserId.Value;
+        }
+
         var cerezdenId = GetCurrentCerezdenKullaniciId();
         if (cerezdenId == null) return 1;
-        var user = _db.Kullanicilar.AsNoTracking().IgnoreQueryFilters().FirstOrDefault(k => k.CerezdenKullaniciId == cerezdenId);
+
+        // Aynı CerezdenKullaniciId için birden fazla kayıt varsa deterministik olsun.
+        var user = _db.Kullanicilar
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .OrderByDescending(k => k.Id)
+            .FirstOrDefault(k => k.CerezdenKullaniciId == cerezdenId);
+
         return user?.Id ?? 1;
     }
 

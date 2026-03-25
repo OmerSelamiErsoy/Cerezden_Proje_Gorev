@@ -79,21 +79,31 @@ public class GorevGrubuController : ControllerBase
             .Select(g => new { g.Id, g.Ad, g.Aciklama, OlusturanAdSoyad = g.OlusturanKullanici != null ? g.OlusturanKullanici.AdSoyad : null })
             .ToListAsync(ct);
         var atananGorevIds = await _db.GorevAtamalar.AsNoTracking().Where(a => a.KullaniciId == userId).Select(a => a.GorevId).ToListAsync(ct);
-        var banaAtananGorevlerinGrupIds = await _db.Gorevler
+        // Tür=Kişilere için ayrıca "Sorumlu kişi" de kullanıcının görev erişiminde olmalı.
+        var sorumluGorevIds = await _db.Gorevler
             .AsNoTracking()
-            .Where(g => atananGorevIds.Contains(g.Id) && g.GorevGrubuId != null)
+            .Where(g => g.SorumluKullaniciId == userId && g.GorevGrubuId != null)
+            .Select(g => g.Id)
+            .ToListAsync(ct);
+
+        var benimErisimliGorevIds = atananGorevIds.Union(sorumluGorevIds).Distinct().ToList();
+
+        var banaAtananVeyaSorumluGorevlerinGrupIds = await _db.Gorevler
+            .AsNoTracking()
+            .Where(g => benimErisimliGorevIds.Contains(g.Id) && g.GorevGrubuId != null)
             .Select(g => g.GorevGrubuId!.Value)
             .Distinct()
             .ToListAsync(ct);
+
         var digerGruplar = await _db.GorevGruplar
             .AsNoTracking()
-            .Where(g => banaAtananGorevlerinGrupIds.Contains(g.Id) && g.OlusturanKullaniciId != userId)
+            .Where(g => banaAtananVeyaSorumluGorevlerinGrupIds.Contains(g.Id) && g.OlusturanKullaniciId != userId)
             .Select(g => new { g.Id, g.Ad, g.Aciklama, OlusturanAdSoyad = g.OlusturanKullanici != null ? g.OlusturanKullanici.AdSoyad : null })
             .ToListAsync(ct);
 
         var tumGrupIds = benimGruplarim.Select(x => x.Id).Union(digerGruplar.Select(x => x.Id)).Distinct().ToList();
         var benimOlusturdugumGorevIds = await _db.Gorevler.AsNoTracking().Where(g => g.OlusturanKullaniciId == userId).Select(g => g.Id).ToListAsync(ct);
-        var benimGorevIds = benimOlusturdugumGorevIds.Union(atananGorevIds).Distinct().ToList();
+        var benimGorevIds = benimOlusturdugumGorevIds.Union(atananGorevIds).Union(sorumluGorevIds).Distinct().ToList();
         var gorevSayilari = await _db.Gorevler
             .AsNoTracking()
             .Where(g => g.GorevGrubuId != null && tumGrupIds.Contains(g.GorevGrubuId!.Value) && benimGorevIds.Contains(g.Id))

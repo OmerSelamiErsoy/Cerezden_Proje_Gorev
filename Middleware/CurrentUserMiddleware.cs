@@ -6,6 +6,9 @@ namespace ProjeGorevYonetimi.Middleware;
 public class CurrentUserMiddleware
 {
     public const string SessionCerezdenKullaniciIdKey = "CerezdenKullaniciId";
+    // Aynı CerezdenKullaniciId için DB'de birden fazla kullanıcı kaydı olasılığında
+    // hangi Kullanici.Id'nin kullanıldığını session'da sabitler.
+    public const string SessionKullaniciIdKey = "KullaniciId";
 
     private readonly RequestDelegate _next;
     private readonly IConfiguration _config;
@@ -20,6 +23,11 @@ public class CurrentUserMiddleware
     {
         var cookieKey = _config.GetValue<string>("UserCookieKey") ?? "UCKAXDFT";
         int? cerezdenId = null;
+
+        // Session'da direkt Kullanici.Id varsa audit için accessor'ü hızlıca doldur.
+        var sessionUserId = context.Session.GetInt32(SessionKullaniciIdKey);
+        if (sessionUserId.HasValue)
+            accessor.CurrentUserId = sessionUserId.Value;
 
         // 1) Session'dan oku (öncelik)
         var sessionId = context.Session.GetInt32(SessionCerezdenKullaniciIdKey);
@@ -42,7 +50,10 @@ public class CurrentUserMiddleware
                 .AsNoTracking()
                 .FirstOrDefaultAsync(k => k.CerezdenKullaniciId == cerezdenId);
             if (user != null)
+            {
                 accessor.CurrentUserId = user.Id;
+                context.Session.SetInt32(SessionKullaniciIdKey, user.Id);
+            }
         }
 
         // 3) Session ve cookie yoksa, API dışı istekleri ana projeye yönlendir
