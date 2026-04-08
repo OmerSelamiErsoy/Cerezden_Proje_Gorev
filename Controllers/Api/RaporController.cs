@@ -30,6 +30,7 @@ public class RaporController : ControllerBase
             return Ok(new List<GorevRaporDto>());
 
         var userId = user.Id;
+        var genelYetkili = GenelYetkiliMiForCerezden(kullaniciId);
 
         var hedefDurumAdlari = new[] { "İşlem Bekliyor", "Beklemede", "İşleme Alındı" };
         var durumlar = await _db.Durumlar
@@ -41,28 +42,19 @@ public class RaporController : ControllerBase
         if (!durumIdler.Any())
             return Ok(new List<GorevRaporDto>());
 
-        var aktifGrupIdler = await _db.GorevGruplar.AsNoTracking().Select(x => x.Id).ToListAsync(ct);
-
-        var gorevIds = await _db.Gorevler
-            .AsNoTracking()
-            .Where(g => !g.IsDeleted && g.OlusturanKullaniciId == userId && (g.GorevGrubuId == null || aktifGrupIdler.Contains(g.GorevGrubuId!.Value)))
-            .Select(g => g.Id)
-            .ToListAsync(ct);
-        var atananIds = await _db.GorevAtamalar
-            .AsNoTracking()
-            .Where(a => a.KullaniciId == userId)
-            .Select(a => a.GorevId)
-            .ToListAsync(ct);
-        var tumIds = gorevIds.Union(atananIds).Distinct().ToList();
-        if (!tumIds.Any())
-            return Ok(new List<GorevRaporDto>());
-
-        var gorevler = await _db.Gorevler
+        var gorevlerQuery = _db.Gorevler
             .AsNoTracking()
             .Where(g => !g.IsDeleted
-                        && tumIds.Contains(g.Id)
-                        && durumIdler.Contains(g.DurumId)
-                        && (g.GorevGrubuId == null || aktifGrupIdler.Contains(g.GorevGrubuId!.Value)))
+                        && durumIdler.Contains(g.DurumId));
+
+        // GeneralAuthority ise tüm görevleri; değilse sorumlu olduğum + paylaşılanlarda olduğum görevleri getir.
+        if (!genelYetkili)
+        {
+            gorevlerQuery = gorevlerQuery.Where(g =>
+                g.SorumluKullaniciId == userId || g.Atamalar!.Any(a => a.KullaniciId == userId));
+        }
+
+        var gorevler = await gorevlerQuery
             .Include(g => g.GorevGrubu)
             .Include(g => g.Durum)
             .Include(g => g.SorumluKullanici)

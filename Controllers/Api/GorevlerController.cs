@@ -31,6 +31,8 @@ public class GorevlerController : ControllerBase
         var userId = _currentUser.GetCurrentUserId();
         var genelYetkiliMi = _yetki.GenelYetkiliMi();
         var durumlar = await _db.Durumlar.AsNoTracking().OrderBy(d => d.Sira).Select(d => new { d.Id, d.Ad }).ToListAsync(ct);
+        var iptalId = durumlar.FirstOrDefault(d => d.Ad == "İptal Edildi")?.Id ?? 0;
+        var tamamlandiId = durumlar.FirstOrDefault(d => d.Ad == "Tamamlandı")?.Id ?? 0;
 
         List<int> tumIds = new();
         if (!genelYetkiliMi)
@@ -68,21 +70,21 @@ public class GorevlerController : ControllerBase
         if (genelYetkiliMi)
         {
             aktifGorevler = await aktifGorevlerQuery
-                .Where(g => g.DurumId != 4 && g.DurumId != 5 && (grupId == null || g.GorevGrubuId == grupId))
+                .Where(g => g.DurumId != iptalId && g.DurumId != tamamlandiId && (grupId == null || g.GorevGrubuId == grupId))
                 .ToListAsync(ct);
 
             tamamlananIptal = await tamamlananIptalQuery
-                .Where(g => (g.DurumId == 4 || g.DurumId == 5) && (grupId == null || g.GorevGrubuId == grupId))
+                .Where(g => (g.DurumId == iptalId || g.DurumId == tamamlandiId) && (grupId == null || g.GorevGrubuId == grupId))
                 .ToListAsync(ct);
         }
         else
         {
             aktifGorevler = await aktifGorevlerQuery
-                .Where(g => tumIds.Contains(g.Id) && g.DurumId != 4 && g.DurumId != 5 && (grupId == null || g.GorevGrubuId == grupId))
+                .Where(g => tumIds.Contains(g.Id) && g.DurumId != iptalId && g.DurumId != tamamlandiId && (grupId == null || g.GorevGrubuId == grupId))
                 .ToListAsync(ct);
 
             tamamlananIptal = await tamamlananIptalQuery
-                .Where(g => tumIds.Contains(g.Id) && (g.DurumId == 4 || g.DurumId == 5) && (grupId == null || g.GorevGrubuId == grupId))
+                .Where(g => tumIds.Contains(g.Id) && (g.DurumId == iptalId || g.DurumId == tamamlandiId) && (grupId == null || g.GorevGrubuId == grupId))
                 .ToListAsync(ct);
         }
 
@@ -171,20 +173,11 @@ public class GorevlerController : ControllerBase
 
         if (sorumluOldugum)
         {
-            // Kanban ile aynı görünürlük: sadece benim oluşturduğum veya bana atanan görevlerden sorumlu olduklarım
-            var gorevIdsSorumlu = await _db.Gorevler.AsNoTracking().Where(g => !g.IsDeleted && g.OlusturanKullaniciId == userId).Select(g => g.Id).ToListAsync(ct);
-            var atananIdsSorumlu = await _db.GorevAtamalar.AsNoTracking().Where(a => a.KullaniciId == userId).Select(a => a.GorevId).ToListAsync(ct);
-            var tumGorevIdsSorumlu = gorevIdsSorumlu.Union(atananIdsSorumlu).Distinct().ToList();
-            if (!tumGorevIdsSorumlu.Any())
-            {
-                return Ok(durumlar.Select(d => new GorevDurumOzetDto { DurumAd = d.Ad, Adet = 0 }).OrderBy(x => Array.IndexOf(hedefDurumAdlari, x.DurumAd)).ToList());
-            }
-            var aktifGrupIdler = await _db.GorevGruplar.AsNoTracking().Select(x => x.Id).ToListAsync(ct);
             var sayilar = await _db.Gorevler
                 .AsNoTracking()
-                .Where(g => !g.IsDeleted && g.SorumluKullaniciId == userId && tumGorevIdsSorumlu.Contains(g.Id)
+                .Where(g => !g.IsDeleted && g.SorumluKullaniciId == userId
                     && durumIdler.Contains(g.DurumId)
-                    && (g.GorevGrubuId == null || aktifGrupIdler.Contains(g.GorevGrubuId.Value)))
+                )
                 .GroupBy(g => g.DurumId)
                 .Select(g => new { DurumId = g.Key, Sayi = g.Count() })
                 .ToListAsync(ct);
@@ -199,15 +192,12 @@ public class GorevlerController : ControllerBase
             return Ok(sonuc);
         }
 
-        var aktifGrupIdlerToplam = await _db.GorevGruplar.AsNoTracking().Select(x => x.Id).ToListAsync(ct);
-
         // Genel yetkili ise tüm görevleri say.
         if (genelYetkiliMi)
         {
             var toplamSayilar = await _db.Gorevler
                 .AsNoTracking()
-                .Where(g => durumIdler.Contains(g.DurumId)
-                    && (g.GorevGrubuId == null || aktifGrupIdlerToplam.Contains(g.GorevGrubuId!.Value)))
+                .Where(g => !g.IsDeleted && durumIdler.Contains(g.DurumId))
                 .GroupBy(g => g.DurumId)
                 .Select(g => new { DurumId = g.Key, Sayi = g.Count() })
                 .ToListAsync(ct);
@@ -224,18 +214,12 @@ public class GorevlerController : ControllerBase
             return Ok(toplamSonuc);
         }
 
-        var gorevIds = await _db.Gorevler
-            .AsNoTracking()
-            .Where(g => !g.IsDeleted && g.OlusturanKullaniciId == userId && (g.GorevGrubuId == null || aktifGrupIdlerToplam.Contains(g.GorevGrubuId!.Value)))
-            .Select(g => g.Id).ToListAsync(ct);
-        var atananIds = await _db.GorevAtamalar.AsNoTracking().Where(a => a.KullaniciId == userId).Select(a => a.GorevId).ToListAsync(ct);
-        var tumIds = gorevIds.Union(atananIds).Distinct().ToList();
-        if (!tumIds.Any()) return Ok(new List<GorevDurumOzetDto>());
-
         var toplamSayilar2 = await _db.Gorevler
             .AsNoTracking()
-            .Where(g => !g.IsDeleted && tumIds.Contains(g.Id) && durumIdler.Contains(g.DurumId)
-                && (g.GorevGrubuId == null || aktifGrupIdlerToplam.Contains(g.GorevGrubuId!.Value)))
+            .Where(g => !g.IsDeleted
+                && durumIdler.Contains(g.DurumId)
+                && (g.SorumluKullaniciId == userId || g.Atamalar!.Any(a => a.KullaniciId == userId))
+            )
             .GroupBy(g => g.DurumId)
             .Select(g => new { DurumId = g.Key, Sayi = g.Count() })
             .ToListAsync(ct);
@@ -296,19 +280,26 @@ public class GorevlerController : ControllerBase
         gorev.Aciklama = dto.Aciklama;
         gorev.DurumId = dto.DurumId;
         gorev.Renk = dto.Renk;
-        gorev.Turu = dto.Turu;
         var userId = _currentUser.GetCurrentUserId();
-        gorev.SorumluKullaniciId = dto.Turu == 0 ? userId : (dto.SorumluKullaniciId ?? userId);
 
-        // Tür / atamalar: mevcut atamaları kaldır, yenilerini ekle
-        if (gorev.Atamalar != null)
+        // Tür / sorumlu / atamalar sadece gerçekten payload'da gelmişse güncellenmeli.
+        // Aksi halde (ör. kanban'dan sadece durum güncellemesi) paylaşılan kişiler siliniyordu.
+        if (dto.Turu.HasValue)
+            gorev.Turu = dto.Turu.Value;
+
+        if (dto.SorumluKullaniciId.HasValue)
+            gorev.SorumluKullaniciId = dto.SorumluKullaniciId.Value;
+        else if (dto.Turu is 0)
+            gorev.SorumluKullaniciId = userId;
+
+        if (dto.AtananKullaniciIds != null)
         {
-            foreach (var a in gorev.Atamalar.ToList())
-                _db.GorevAtamalar.Remove(a);
-        }
-        if (dto.Turu == 1 && dto.AtananKullaniciIds != null)
-        {
-            foreach (var kid in dto.AtananKullaniciIds)
+            if (gorev.Atamalar != null)
+            {
+                foreach (var a in gorev.Atamalar.ToList())
+                    _db.GorevAtamalar.Remove(a);
+            }
+            foreach (var kid in dto.AtananKullaniciIds.Distinct())
                 _db.GorevAtamalar.Add(new GorevAtama { GorevId = id, KullaniciId = kid });
         }
 
@@ -470,7 +461,7 @@ public class GorevUpdateDto
     public string Ad { get; set; } = "";
     public string? Aciklama { get; set; }
     public int DurumId { get; set; }
-    public int Turu { get; set; }
+    public int? Turu { get; set; }
     public int? SorumluKullaniciId { get; set; }
     public List<int>? AtananKullaniciIds { get; set; }
     public string? Renk { get; set; }

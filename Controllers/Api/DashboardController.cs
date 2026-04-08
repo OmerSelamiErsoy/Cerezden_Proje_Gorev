@@ -32,13 +32,37 @@ public class DashboardController : ControllerBase
             .ToList();
 
         var userId = _currentUser.GetCurrentUserId();
-        var gorevIds = await _db.Gorevler.AsNoTracking().Where(g => g.OlusturanKullaniciId == userId).Select(g => g.Id).ToListAsync(ct);
-        var atananIds = await _db.GorevAtamalar.AsNoTracking().Where(a => a.KullaniciId == userId).Select(a => a.GorevId).ToListAsync(ct);
-        var tumGorevIds = gorevIds.Union(atananIds).Distinct().ToList();
+        var genelYetkiliMi = _yetki.GenelYetkiliMi();
+        List<int> tumGorevIds = new();
+        if (!genelYetkiliMi)
+        {
+            var sorumluIds = await _db.Gorevler
+                .AsNoTracking()
+                .Where(g => !g.IsDeleted && g.SorumluKullaniciId == userId)
+                .Select(g => g.Id)
+                .ToListAsync(ct);
+            var paylasilanIds = await _db.GorevAtamalar
+                .AsNoTracking()
+                .Where(a => a.KullaniciId == userId)
+                .Select(a => a.GorevId)
+                .ToListAsync(ct);
+            tumGorevIds = sorumluIds.Union(paylasilanIds).Distinct().ToList();
+        }
 
-        var gorevlerAktif = await _db.Gorevler
+        var kapaliDurumIdler = await _db.Durumlar
             .AsNoTracking()
-            .Where(g => tumGorevIds.Contains(g.Id) && g.DurumId != 4 && g.DurumId != 5)
+            .Where(d => d.Ad == "İptal Edildi" || d.Ad == "Tamamlandı")
+            .Select(d => d.Id)
+            .ToListAsync(ct);
+
+        IQueryable<ProjeGorevYonetimi.Models.Entities.Gorev> gorevlerQuery = _db.Gorevler
+            .AsNoTracking()
+            .Where(g => !g.IsDeleted && !kapaliDurumIdler.Contains(g.DurumId));
+        if (!genelYetkiliMi)
+        {
+            gorevlerQuery = gorevlerQuery.Where(g => tumGorevIds.Contains(g.Id));
+        }
+        var gorevlerAktif = await gorevlerQuery
             .Include(g => g.Durum)
             .ToListAsync(ct);
 
@@ -49,7 +73,6 @@ public class DashboardController : ControllerBase
             .ToList();
 
         var gorevGrubuSayisi = await _db.GorevGruplar.AsNoTracking().CountAsync(ct);
-        var meGenelYetkiliMi = _yetki.GenelYetkiliMi();
 
         return Ok(new DashboardDto
         {
@@ -57,7 +80,7 @@ public class DashboardController : ControllerBase
             AktifProjeler = aktifProjeler,
             GorevDurumOzeti = gorevDurumOzeti,
             GorevGrubuSayisi = gorevGrubuSayisi,
-            MeGenelYetkiliMi = meGenelYetkiliMi
+            MeGenelYetkiliMi = genelYetkiliMi
         });
     }
 }

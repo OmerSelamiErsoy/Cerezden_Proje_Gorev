@@ -138,7 +138,7 @@
                     <div v-for="kart in (kanban.kartlar && kanban.kartlar[kolon.id]) || []" :key="kart.id" class="kanban-card card" :style="kart.renk ? { borderLeft: '4px solid ' + kart.renk } : {}">
                         <div class="card-body p-2">
                             <div class="d-flex justify-content-between align-items-start">
-                                <strong class="small">{{ kart.ad }}</strong>
+                                <strong class="small" :title="kart.ad">{{ kisaMetin(kart.ad, 40) }}</strong>
                                 <a href="#" @@click.prevent="yorumAc(kart)" class="text-decoration-none small" title="Yorumlar"><i class="fas fa-comment" :class="(kart.yorumSayisi || 0) > 0 ? 'text-danger' : 'text-success'"></i><span v-if="(kart.yorumSayisi || 0) > 0"> - Mesaj ({{ kart.yorumSayisi }})</span><span v-else> - mesaj yaz</span></a>
                             </div>
                             <p v-if="kart.aciklama" class="small mb-1">
@@ -199,7 +199,7 @@
                             <div class="card-body p-3">
                                 <div class="d-flex justify-content-between align-items-start gap-2">
                                     <div class="min-w-0 flex-grow-1">
-                                        <div class="fw-medium text-truncate mb-1">{{ k.ad }}</div>
+                                        <div class="fw-medium text-truncate mb-1" :title="k.ad">{{ kisaMetin(k.ad, 40) }}</div>
                                         <div class="small text-muted mb-2">Oluşturan: {{ k.olusturanAdSoyad }} - {{ formatDate(k.olusturmaTarihi) }}</div>
                                         <div class="small text-muted mb-2">Sorumlu kişi: <span class="text-danger fw-medium">{{ k.sorumluAdSoyad || '-' }}</span></div>
                                         <div class="d-flex align-items-center flex-wrap gap-2">
@@ -228,7 +228,7 @@
                             <div class="card-body p-3">
                                 <div class="d-flex justify-content-between align-items-start gap-2">
                                     <div class="min-w-0 flex-grow-1">
-                                        <div class="fw-medium text-truncate mb-1">{{ k.ad }}</div>
+                                        <div class="fw-medium text-truncate mb-1" :title="k.ad">{{ kisaMetin(k.ad, 40) }}</div>
                                         <div class="small text-muted mb-2">Oluşturan: {{ k.olusturanAdSoyad }} - {{ formatDate(k.olusturmaTarihi) }}</div>
                                         <div class="small text-muted mb-2">Sorumlu kişi: <span class="text-danger fw-medium">{{ k.sorumluAdSoyad || '-' }}</span></div>
                                         <div class="d-flex align-items-center flex-wrap gap-2">
@@ -393,6 +393,12 @@ createApp({
             const url = grupId != null ? '/api/Gorevler/kanban?grupId=' + grupId : '/api/Gorevler/kanban';
             return axios.get(url).then(r => { this.kanban = r.data; this.me = r.data.me || null; });
         },
+        kisaMetin(text, maxLen) {
+            if (!text) return '';
+            const s = String(text);
+            const m = (maxLen == null || isNaN(maxLen)) ? 40 : Number(maxLen);
+            return s.length > m ? (s.substring(0, m) + '...') : s;
+        },
         formatDate(d) { if (!d) return '-'; return new Date(d).toLocaleString('tr-TR'); },
         yeniGorev() { this.gorevForm = { id: null, ad: '', aciklama: '', durumId: null, turu: 0, atananKullaniciIds: [], sorumluKullaniciId: this.me?.kullaniciId ?? null, gorevGrubuId: this.grupId }; },
         gorevFormTuruDegisti() { if (this.gorevForm.turu === 0) this.gorevForm.sorumluKullaniciId = this.me?.kullaniciId ?? null; },
@@ -416,7 +422,7 @@ createApp({
                     aciklama: this.gorevForm.aciklama || '',
                     durumId: durumId,
                     turu: this.gorevForm.turu,
-                    atananKullaniciIds: this.gorevForm.turu === 1 ? (this.gorevForm.atananKullaniciIds || []) : null,
+                    atananKullaniciIds: this.gorevForm.turu === 1 ? (this.gorevForm.atananKullaniciIds || []) : [],
                     sorumluKullaniciId: this.gorevForm.turu === 0 ? (this.me?.kullaniciId ?? null) : (this.gorevForm.sorumluKullaniciId || null),
                     renk: k.renk || null
                 };
