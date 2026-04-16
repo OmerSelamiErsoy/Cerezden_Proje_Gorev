@@ -3,45 +3,6 @@
 }
 <style>
     #sablon-app .table-responsive { overflow: visible !important; }
-    /* Şablon modal - Adımlar (Projeler/Create ile aynı tasarım) */
-    #sablon-app #sablonModal .sablon-adimlar {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 1.25rem;
-    }
-    #sablon-app #sablonModal .sablon-adimlar .adimlar-baslik {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: #475569;
-        margin-bottom: 1rem;
-    }
-    #sablon-app #sablonModal .sablon-adimlar .adim-satir {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        padding: 10px 12px;
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        margin-bottom: 8px;
-    }
-    #sablon-app #sablonModal .sablon-adimlar .adim-satir .adim-numara {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: #e2e8f0;
-        color: #64748b;
-        font-size: 0.8125rem;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-    #sablon-app #sablonModal .sablon-adimlar .adim-satir .adim-ad-input { flex: 1; min-width: 0; }
-    #sablon-app #sablonModal .sablon-adimlar .adim-satir .adim-kategori { width: 160px; flex-shrink: 0; }
-    #sablon-app #sablonModal .sablon-adimlar .adim-ekle-btn { margin-top: 10px; border-style: dashed; border-width: 2px; }
     /* Proje Başlat modal - Paylaşılacak Kişiler (Projeler/Create ile aynı) */
     #sablon-app #projeBaslatModal .paylasilacak-kisiler-list {
         max-height: 220px;
@@ -108,7 +69,7 @@
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             Proje Şablonları
-            <button class="btn btn-primary btn-sm" @@click="sablonEkle()"><i class="fas fa-plus me-1"></i> Yeni Şablon</button>
+            <a class="btn btn-primary btn-sm" href="/Sablonlar/Create"><i class="fas fa-plus me-1"></i> Yeni Şablon</a>
         </div>
         <div class="table-responsive">
             <table class="table mb-0">
@@ -126,7 +87,7 @@
                                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"><i class="fas fa-cog me-1"></i> İşlemler</button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li><a class="dropdown-item text-success" :href="'/Sablonlar/Detay/' + s.id"><i class="fas fa-eye me-1"></i> Detay</a></li>
-                                    <li><a class="dropdown-item text-primary" href="#" @@click.prevent="sablonDuzenle(s)"><i class="fas fa-edit me-1"></i> Düzenle</a></li>
+                                    <li><a class="dropdown-item text-primary" :href="'/Sablonlar/Edit/' + s.id"><i class="fas fa-edit me-1"></i> Düzenle</a></li>
                                     <li><a class="dropdown-item text-danger" href="#" @@click.prevent="sablonSil(s.id)"><i class="fas fa-trash me-1"></i> Sil</a></li>
                                 </ul>
                             </div>
@@ -138,7 +99,7 @@
                                 <div class="empty-icon"><i class="fas fa-copy"></i></div>
                                 <div class="empty-title">Henüz şablon yok</div>
                                 <p class="small mb-3">İlk şablonunuzu oluşturmak için aşağıdaki butonu kullanın.</p>
-                                <button type="button" class="btn btn-primary btn-sm text-white" @@click="sablonEkle()"><i class="fas fa-plus me-1"></i> Yeni Şablon</button>
+                                <a class="btn btn-primary btn-sm text-white" href="/Sablonlar/Create"><i class="fas fa-plus me-1"></i> Yeni Şablon</a>
                             </div>
                         </td>
                     </tr>
@@ -146,29 +107,6 @@
             </table>
         </div>
     </div>
-
-    <div class="modal fade" id="sablonModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">{{ sablonForm.id ? 'Şablon Düzenle' : 'Yeni Şablon' }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body">
-            <div class="mb-2"><label class="form-label">Şablon Adı</label><input v-model="sablonForm.ad" class="form-control" /></div>
-            <div class="mb-2"><label class="form-label">Açıklama</label><textarea v-model="sablonForm.aciklama" class="form-control" rows="2"></textarea></div>
-            <div class="mb-2"><label class="form-label">Adımlar</label></div>
-            <div class="sablon-adimlar">
-                <div class="adimlar-baslik"><i class="fas fa-list-ol me-1"></i> Şablon adımları</div>
-                <div v-for="(d, i) in sablonForm.detaylar" :key="i" class="adim-satir">
-                    <span class="adim-numara">{{ i + 1 }}</span>
-                    <input v-model="d.adimAdi" class="form-control form-control-sm adim-ad-input" placeholder="Adım adı" />
-                    <select v-model="d.kategoriId" class="form-select form-select-sm adim-kategori">
-                        <option :value="null">Kategori</option>
-                        <option v-for="k in kategoriler" :key="k.id" :value="k.id">{{ k.ad }}</option>
-                    </select>
-                    <button type="button" class="btn btn-outline-danger btn-sm" @@click="sablonForm.detaylar.splice(i,1)" title="Adımı sil"><i class="fas fa-times"></i></button>
-                </div>
-                <button type="button" class="btn btn-outline-secondary btn-sm adim-ekle-btn" @@click="sablonForm.detaylar.push({ adimAdi: '', kategoriId: null })"><i class="fas fa-plus me-1"></i> Adım Ekle</button>
-            </div>
-        </div>
-        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> İptal</button><button type="button" class="btn btn-primary" @@click="sablonKaydet"><i class="fas fa-save me-1"></i> Kaydet</button></div>
-    </div></div></div>
 
     <div class="modal fade" id="projeBaslatModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
         <div class="modal-header"><h5 class="modal-title">Proje Başlat - {{ seciliSablon?.ad }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
@@ -210,7 +148,6 @@ createApp({
             sablonlar: [],
             kategoriler: [],
             kullanicilar: [],
-            sablonForm: { id: null, ad: '', aciklama: '', detaylar: [] },
             seciliSablon: null,
             baslatForm: { ad: '', baslangicTarihi: null, planlananBitisTarihi: null, sorumluKullaniciId: null, yetkiTipi: 0, yetkiKullaniciIds: [] }
         };
@@ -224,14 +161,6 @@ createApp({
     },
     methods: {
         sablonYukle() { return axios.get('/api/Sablon').then(r => { this.sablonlar = r.data; }); },
-        sablonEkle() { this.sablonForm = { id: null, ad: '', aciklama: '', detaylar: [] }; new bootstrap.Modal(document.getElementById('sablonModal')).show(); },
-        sablonDuzenle(s) { axios.get('/api/Sablon/' + s.id).then(r => { this.sablonForm = { id: r.data.id, ad: r.data.ad, aciklama: r.data.aciklama, detaylar: (r.data.detaylar || []).map(d => ({ adimAdi: d.adimAdi, kategoriId: d.kategoriId })) }; new bootstrap.Modal(document.getElementById('sablonModal')).show(); }); },
-        sablonKaydet() {
-            const payload = { ad: this.sablonForm.ad, aciklama: this.sablonForm.aciklama, detaylar: this.sablonForm.detaylar.map((d, i) => ({ adimAdi: d.adimAdi, kategoriId: d.kategoriId, sira: i + 1 })) };
-            if (window.setPageLoading) window.setPageLoading(true);
-            const p = this.sablonForm.id ? axios.put('/api/Sablon/' + this.sablonForm.id, payload) : axios.post('/api/Sablon', payload);
-            p.then(() => this.sablonYukle()).then(() => { bootstrap.Modal.getInstance(document.getElementById('sablonModal')).hide(); if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
-        },
         sablonSil(id) {
             if (!confirm('Şablon silinsin mi?')) return;
             if (window.setPageLoading) window.setPageLoading(true);

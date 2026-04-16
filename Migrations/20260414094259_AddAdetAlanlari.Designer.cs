@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ProjeGorevYonetimi.Data;
 
@@ -11,9 +12,11 @@ using ProjeGorevYonetimi.Data;
 namespace ProjeGorevYonetimi.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260414094259_AddAdetAlanlari")]
+    partial class AddAdetAlanlari
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -545,7 +548,6 @@ namespace ProjeGorevYonetimi.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal?>("Adet")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("AdetBirimiId")
@@ -554,10 +556,6 @@ namespace ProjeGorevYonetimi.Migrations
                     b.Property<string>("AdimAdi")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal?>("CikisFiyati")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("DeleteDate")
                         .HasColumnType("datetime2");
@@ -579,10 +577,6 @@ namespace ProjeGorevYonetimi.Migrations
 
                     b.Property<int?>("KategoriId")
                         .HasColumnType("int");
-
-                    b.Property<decimal?>("MaliyetFiyati")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ProjeId")
                         .HasColumnType("int");
@@ -841,7 +835,6 @@ namespace ProjeGorevYonetimi.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal?>("Adet")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("AdetBirimiId")

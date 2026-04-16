@@ -62,6 +62,11 @@ public class ProjeDetayItemDto
     public int? SorumluKullaniciId { get; set; }
     public string? SorumluAdSoyad { get; set; }
     public string? Aciklama { get; set; }
+    public decimal? Adet { get; set; }
+    public int? AdetBirimiId { get; set; }
+    public string? AdetBirimiAd { get; set; }
+    public decimal? MaliyetFiyati { get; set; }
+    public decimal? CikisFiyati { get; set; }
     public int Sira { get; set; }
     public int YorumSayisi { get; set; }
     /// <summary>Adımı ekleyen kullanıcının Kullanici.Id değeri.</summary>
@@ -86,6 +91,10 @@ public class ProjeDetayCreateItemDto
     public int? KategoriId { get; set; }
     public string AdimAdi { get; set; } = "";
     public string? Aciklama { get; set; }
+    public decimal? Adet { get; set; }
+    public int? AdetBirimiId { get; set; }
+    public decimal? MaliyetFiyati { get; set; }
+    public decimal? CikisFiyati { get; set; }
     public int Sira { get; set; }
 }
 

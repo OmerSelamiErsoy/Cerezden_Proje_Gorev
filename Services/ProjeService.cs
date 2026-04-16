@@ -74,6 +74,8 @@ public class ProjeService : IProjeService
             .Include(x => x.Detaylar!)
                 .ThenInclude(d => d.Kategori)
             .Include(x => x.Detaylar!)
+                .ThenInclude(d => d.AdetBirimi)
+            .Include(x => x.Detaylar!)
                 .ThenInclude(d => d.SorumluKullanici)
             .Include(x => x.Detaylar!)
                 .ThenInclude(d => d.Yorumlar)
@@ -118,6 +120,11 @@ public class ProjeService : IProjeService
                     SorumluKullaniciId = d.SorumluKullaniciId,
                     SorumluAdSoyad = d.SorumluKullanici?.AdSoyad,
                     Aciklama = d.Aciklama,
+                    Adet = d.Adet,
+                    AdetBirimiId = d.AdetBirimiId,
+                    AdetBirimiAd = d.AdetBirimi != null ? d.AdetBirimi.Ad : null,
+                    MaliyetFiyati = d.MaliyetFiyati,
+                    CikisFiyati = d.CikisFiyati,
                     Sira = d.Sira,
                     YorumSayisi = d.Yorumlar?.Count ?? 0,
                     InsertedByUserId = d.InsertedByUserId
@@ -180,6 +187,10 @@ public class ProjeService : IProjeService
                     AdimAdi = item.AdimAdi,
                     DurumId = beklemedeDurumId,
                     Aciklama = item.Aciklama,
+                    Adet = item.Adet,
+                    AdetBirimiId = item.AdetBirimiId,
+                    MaliyetFiyati = item.MaliyetFiyati,
+                    CikisFiyati = item.CikisFiyati,
                     Sira = ++sira
                 });
             }

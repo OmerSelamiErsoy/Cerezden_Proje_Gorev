@@ -137,6 +137,7 @@ using (var scope = app.Services.CreateScope())
             ALTER TABLE [Gorevler] ADD CONSTRAINT [FK_Gorevler_Kullanicilar_SorumluKullaniciId] FOREIGN KEY ([SorumluKullaniciId]) REFERENCES [Kullanicilar] ([Id]) ON DELETE NO ACTION;
         END");
     await DbInitializer.SeedAsync(db);
+    await DbInitializer.EnsureAdetBirimleriAsync(db);
 }
 
 app.Run();

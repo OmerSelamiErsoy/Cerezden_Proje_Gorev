@@ -48,6 +48,8 @@ public class SablonController : ControllerBase
             .AsNoTracking()
             .Include(x => x.Detaylar!)
                 .ThenInclude(d => d.Kategori)
+            .Include(x => x.Detaylar!)
+                .ThenInclude(d => d.AdetBirimi)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (s == null) return NotFound();
         return Ok(new SablonDetayDto
@@ -57,7 +59,18 @@ public class SablonController : ControllerBase
             Aciklama = s.Aciklama,
             Detaylar = (s.Detaylar ?? Array.Empty<ProjeSablonDetay>())
                 .OrderBy(d => d.Sira)
-                .Select(d => new SablonDetayItemDto { Id = d.Id, KategoriId = d.KategoriId, KategoriAd = d.Kategori != null ? d.Kategori.Ad : null, AdimAdi = d.AdimAdi, Aciklama = d.Aciklama, Sira = d.Sira })
+                .Select(d => new SablonDetayItemDto
+                {
+                    Id = d.Id,
+                    KategoriId = d.KategoriId,
+                    KategoriAd = d.Kategori != null ? d.Kategori.Ad : null,
+                    AdimAdi = d.AdimAdi,
+                    Aciklama = d.Aciklama,
+                    Adet = d.Adet,
+                    AdetBirimiId = d.AdetBirimiId,
+                    AdetBirimiAd = d.AdetBirimi != null ? d.AdetBirimi.Ad : null,
+                    Sira = d.Sira
+                })
                 .ToList()
         });
     }
@@ -74,7 +87,16 @@ public class SablonController : ControllerBase
             var sira = 0;
             foreach (var item in dto.Detaylar)
             {
-                _db.ProjeSablonDetaylar.Add(new ProjeSablonDetay { ProjeSablonId = sablon.Id, KategoriId = item.KategoriId, AdimAdi = item.AdimAdi, Aciklama = item.Aciklama, Sira = ++sira });
+                _db.ProjeSablonDetaylar.Add(new ProjeSablonDetay
+                {
+                    ProjeSablonId = sablon.Id,
+                    KategoriId = item.KategoriId,
+                    AdimAdi = item.AdimAdi,
+                    Aciklama = item.Aciklama,
+                    Adet = item.Adet,
+                    AdetBirimiId = item.AdetBirimiId,
+                    Sira = ++sira
+                });
             }
             await _db.SaveChangesAsync(ct);
         }
@@ -97,7 +119,16 @@ public class SablonController : ControllerBase
             var sira = 0;
             foreach (var item in dto.Detaylar)
             {
-                _db.ProjeSablonDetaylar.Add(new ProjeSablonDetay { ProjeSablonId = id, KategoriId = item.KategoriId, AdimAdi = item.AdimAdi, Aciklama = item.Aciklama, Sira = ++sira });
+                _db.ProjeSablonDetaylar.Add(new ProjeSablonDetay
+                {
+                    ProjeSablonId = id,
+                    KategoriId = item.KategoriId,
+                    AdimAdi = item.AdimAdi,
+                    Aciklama = item.Aciklama,
+                    Adet = item.Adet,
+                    AdetBirimiId = item.AdetBirimiId,
+                    Sira = ++sira
+                });
             }
             await _db.SaveChangesAsync(ct);
         }
@@ -179,6 +210,8 @@ public class SablonController : ControllerBase
                     AdimAdi = d.AdimAdi,
                     DurumId = islemBekliyorId,
                     Aciklama = d.Aciklama,
+                    Adet = d.Adet,
+                    AdetBirimiId = d.AdetBirimiId,
                     Sira = d.Sira
                 });
             }
@@ -191,8 +224,26 @@ public class SablonController : ControllerBase
 
 public class SablonListDto { public int Id { get; set; } public string Ad { get; set; } = ""; public string? Aciklama { get; set; } public int DetaySayisi { get; set; } }
 public class SablonDetayDto { public int Id { get; set; } public string Ad { get; set; } = ""; public string? Aciklama { get; set; } public List<SablonDetayItemDto> Detaylar { get; set; } = new(); }
-public class SablonDetayItemDto { public int Id { get; set; } public int? KategoriId { get; set; } public string? KategoriAd { get; set; } public string AdimAdi { get; set; } = ""; public string? Aciklama { get; set; } public int Sira { get; set; } }
+public class SablonDetayItemDto
+{
+    public int Id { get; set; }
+    public int? KategoriId { get; set; }
+    public string? KategoriAd { get; set; }
+    public string AdimAdi { get; set; } = "";
+    public string? Aciklama { get; set; }
+    public decimal? Adet { get; set; }
+    public int? AdetBirimiId { get; set; }
+    public string? AdetBirimiAd { get; set; }
+    public int Sira { get; set; }
+}
 public class SablonCreateDto { public string Ad { get; set; } = ""; public string? Aciklama { get; set; } public List<SablonDetayItemCreateDto>? Detaylar { get; set; } }
-public class SablonDetayItemCreateDto { public int? KategoriId { get; set; } public string AdimAdi { get; set; } = ""; public string? Aciklama { get; set; } }
+public class SablonDetayItemCreateDto
+{
+    public int? KategoriId { get; set; }
+    public string AdimAdi { get; set; } = "";
+    public string? Aciklama { get; set; }
+    public decimal? Adet { get; set; }
+    public int? AdetBirimiId { get; set; }
+}
 public class ProjeBaslatDto { public string? Ad { get; set; } public DateTime? BaslangicTarihi { get; set; } public DateTime? PlanlananBitisTarihi { get; set; } public int? SorumluKullaniciId { get; set; } public int YetkiTipi { get; set; } public List<int>? YetkiKullaniciIds { get; set; } }
 public class SablonSiraGuncelleDto { public List<int> DetayIds { get; set; } = new(); }

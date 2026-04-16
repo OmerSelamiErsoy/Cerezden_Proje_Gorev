@@ -117,6 +117,18 @@
         </div>
     </div>
 
+    <div class="card mb-4" v-if="proje">
+        <div class="card-body py-3">
+            <div class="small text-muted mb-2">Fiyat Özeti</div>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="badge bg-light text-dark">Toplam Maliyet: <strong>{{ formatMoney(toplamMaliyet) }}</strong></span>
+                <span class="badge bg-light text-dark">Toplam Çıkış: <strong>{{ formatMoney(toplamCikis) }}</strong></span>
+                <span class="badge bg-primary">Fark: <strong>{{ formatMoney(fark) }}</strong></span>
+            </div>
+            <div class="small text-muted mt-1">Fark = Çıkış Fiyatı - Maliyet Fiyatı</div>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header">
             <div class="row align-items-center g-2 w-100">
@@ -145,6 +157,9 @@
                     <input type="checkbox" :value="d.id" v-model="seciliDetayIds" class="form-check-input" />
                     <span class="badge bg-light text-dark">{{ d.kategoriAd || '-' }}</span>
                     <strong>{{ d.adimAdi }}</strong>
+                    <span v-if="d.adet != null" class="badge bg-info text-dark">{{ d.adet }} {{ d.adetBirimiAd || '' }}</span>
+                    <span v-if="d.maliyetFiyati != null" class="badge bg-light text-dark">Maliyet: {{ formatMoney(d.maliyetFiyati) }}</span>
+                    <span v-if="d.cikisFiyati != null" class="badge bg-light text-dark">Çıkış: {{ formatMoney(d.cikisFiyati) }}</span>
                     <span class="badge" :class="'durum-badge-' + d.durumId">{{ d.durumAd }}</span>
                     <span v-if="d.sorumluAdSoyad" class="small text-muted">({{ d.sorumluAdSoyad }})</span>
                     <a href="#" @@click.prevent="yorumAc(d)" class="ms-2" title="Yorumlar"><i class="fas fa-comment" :class="{ 'text-primary': d.yorumSayisi > 0 }"></i> <span v-if="d.yorumSayisi">{{ d.yorumSayisi }}</span></a>
@@ -219,6 +234,29 @@
         <div class="modal-body">
             <div class="mb-2"><label class="form-label">Adım Adı</label><input v-model="adimForm.adimAdi" class="form-control" /></div>
             <div class="mb-2"><label class="form-label">Kategori</label><select v-model="adimForm.kategoriId" class="form-select"><option :value="null">Seçiniz</option><option v-for="k in kategoriler" :key="k.id" :value="k.id">{{ k.ad }}</option></select></div>
+            <div class="row g-2 mb-2">
+                <div class="col-6">
+                    <label class="form-label">Adet (opsiyonel)</label>
+                    <input v-model.number="adimForm.adet" type="number" step="0.01" min="0" class="form-control" />
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Birim</label>
+                    <select v-model="adimForm.adetBirimiId" class="form-select">
+                        <option :value="null">Seçiniz</option>
+                        <option v-for="b in adetBirimleri" :key="b.id" :value="b.id">{{ b.ad }}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row g-2 mb-2">
+                <div class="col-6">
+                    <label class="form-label">Maliyet Fiyatı (opsiyonel)</label>
+                    <input v-model.number="adimForm.maliyetFiyati" type="number" step="0.01" min="0" class="form-control" />
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Çıkış Fiyatı (opsiyonel)</label>
+                    <input v-model.number="adimForm.cikisFiyati" type="number" step="0.01" min="0" class="form-control" />
+                </div>
+            </div>
             <div class="adim-modal-durum-wrap" v-if="durumSecenekleri.length">
                 <label class="form-label"><i class="fas fa-flag me-1"></i> Durum</label>
                 <select v-model="adimForm.durumId" class="form-select"><option v-for="s in durumSecenekleri" :key="s.id" :value="s.id">{{ s.ad }}</option></select>
@@ -267,13 +305,14 @@ createApp({
             proje: null,
             durumlar: [],
             kategoriler: [],
+            adetBirimleri: [],
             kullanicilar: [],
             seciliDetayIds: [],
             topluDurumId: null,
             durumFiltreId: 0,
             topluSorumluKullaniciId: null,
             adimModalId: null,
-            adimForm: { adimAdi: '', kategoriId: null, durumId: null, sorumluKullaniciId: null, aciklama: '' },
+            adimForm: { adimAdi: '', kategoriId: null, adet: null, adetBirimiId: null, maliyetFiyati: null, cikisFiyati: null, durumId: null, sorumluKullaniciId: null, aciklama: '' },
             seciliDetay: null,
             seciliAciklamaDetay: null,
             yorumlar: [],
@@ -321,6 +360,18 @@ createApp({
                 return k ? (k.adSoyad + ' - ' + (k.cepTel || '-')) : '';
             }.bind(this)).filter(Boolean);
         }
+        ,
+        toplamMaliyet() {
+            if (!this.proje || !Array.isArray(this.proje.detaylar)) return 0;
+            return this.proje.detaylar.reduce((acc, d) => acc + (Number(d.maliyetFiyati) || 0), 0);
+        },
+        toplamCikis() {
+            if (!this.proje || !Array.isArray(this.proje.detaylar)) return 0;
+            return this.proje.detaylar.reduce((acc, d) => acc + (Number(d.cikisFiyati) || 0), 0);
+        },
+        fark() {
+            return (Number(this.toplamCikis) || 0) - (Number(this.toplamMaliyet) || 0);
+        }
     },
     watch: {
         durumFiltreId() {
@@ -335,6 +386,7 @@ createApp({
             axios.get('/api/Projeler/' + projeId).then(r => { this.proje = r.data; }),
             axios.get('/api/Parametre/durumlar').then(r => { this.durumlar = r.data; }),
             axios.get('/api/Parametre/kategoriler').then(r => { this.kategoriler = r.data; }),
+            axios.get('/api/Parametre/adet-birimleri').then(r => { this.adetBirimleri = r.data; }),
             axios.get('/api/Kullanicilar').then(r => { this.kullanicilar = r.data; })
         ]).then(() => { if (window.setPageLoading) window.setPageLoading(false); this.$nextTick(() => this.initSortable()); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
     },
@@ -366,8 +418,9 @@ createApp({
             });
         },
         formatDate(d) { if (!d) return '-'; return new Date(d).toLocaleString('tr-TR'); },
-        adimModalAc() { var islemBekliyor = (this.durumSecenekleri || []).find(function(s) { return s.ad === 'İşlem Bekliyor'; }); this.adimModalId = null; this.adimForm = { adimAdi: '', kategoriId: null, durumId: (islemBekliyor && islemBekliyor.id) || (this.durumSecenekleri[0] && this.durumSecenekleri[0].id) || null, sorumluKullaniciId: null, aciklama: '' }; new bootstrap.Modal(document.getElementById('adimModal')).show(); },
-        adimDuzenle(d) { this.adimModalId = d.id; this.adimForm = { adimAdi: d.adimAdi, kategoriId: d.kategoriId, durumId: d.durumId, sorumluKullaniciId: d.sorumluKullaniciId, aciklama: d.aciklama || '' }; new bootstrap.Modal(document.getElementById('adimModal')).show(); },
+        formatMoney(v) { if (v == null) return '-'; try { return Number(v).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); } catch { return v; } },
+        adimModalAc() { var islemBekliyor = (this.durumSecenekleri || []).find(function(s) { return s.ad === 'İşlem Bekliyor'; }); this.adimModalId = null; this.adimForm = { adimAdi: '', kategoriId: null, adet: null, adetBirimiId: null, maliyetFiyati: null, cikisFiyati: null, durumId: (islemBekliyor && islemBekliyor.id) || (this.durumSecenekleri[0] && this.durumSecenekleri[0].id) || null, sorumluKullaniciId: null, aciklama: '' }; new bootstrap.Modal(document.getElementById('adimModal')).show(); },
+        adimDuzenle(d) { this.adimModalId = d.id; this.adimForm = { adimAdi: d.adimAdi, kategoriId: d.kategoriId, adet: d.adet ?? null, adetBirimiId: d.adetBirimiId ?? null, maliyetFiyati: d.maliyetFiyati ?? null, cikisFiyati: d.cikisFiyati ?? null, durumId: d.durumId, sorumluKullaniciId: d.sorumluKullaniciId, aciklama: d.aciklama || '' }; new bootstrap.Modal(document.getElementById('adimModal')).show(); },
         adimKaydet() {
             if (window.setPageLoading) window.setPageLoading(true);
             var modalEl = document.getElementById('adimModal');
@@ -383,9 +436,9 @@ createApp({
             };
             if (this.adimModalId) {
                 var det = this.proje.detaylar.find(x => x.id === this.adimModalId);
-                axios.put('/api/projeler/' + projeId + '/ProjeDetay/' + this.adimModalId, { kategoriId: this.adimForm.kategoriId, adimAdi: this.adimForm.adimAdi, durumId: this.adimForm.durumId, sorumluKullaniciId: this.adimForm.sorumluKullaniciId, aciklama: this.adimForm.aciklama || '', sira: det.sira }).then(() => done()).catch(fail);
+                axios.put('/api/projeler/' + projeId + '/ProjeDetay/' + this.adimModalId, { kategoriId: this.adimForm.kategoriId, adimAdi: this.adimForm.adimAdi, adet: (this.adimForm.adet === '' || this.adimForm.adet === undefined) ? null : this.adimForm.adet, adetBirimiId: this.adimForm.adetBirimiId, maliyetFiyati: (this.adimForm.maliyetFiyati === '' || this.adimForm.maliyetFiyati === undefined) ? null : this.adimForm.maliyetFiyati, cikisFiyati: (this.adimForm.cikisFiyati === '' || this.adimForm.cikisFiyati === undefined) ? null : this.adimForm.cikisFiyati, durumId: this.adimForm.durumId, sorumluKullaniciId: this.adimForm.sorumluKullaniciId, aciklama: this.adimForm.aciklama || '', sira: det.sira }).then(() => done()).catch(fail);
             } else {
-                axios.post('/api/projeler/' + projeId + '/ProjeDetay', { adimAdi: this.adimForm.adimAdi, kategoriId: this.adimForm.kategoriId, durumId: this.adimForm.durumId, sorumluKullaniciId: this.adimForm.sorumluKullaniciId, aciklama: this.adimForm.aciklama }).then(() => done()).catch(fail);
+                axios.post('/api/projeler/' + projeId + '/ProjeDetay', { adimAdi: this.adimForm.adimAdi, kategoriId: this.adimForm.kategoriId, adet: (this.adimForm.adet === '' || this.adimForm.adet === undefined) ? null : this.adimForm.adet, adetBirimiId: this.adimForm.adetBirimiId, maliyetFiyati: (this.adimForm.maliyetFiyati === '' || this.adimForm.maliyetFiyati === undefined) ? null : this.adimForm.maliyetFiyati, cikisFiyati: (this.adimForm.cikisFiyati === '' || this.adimForm.cikisFiyati === undefined) ? null : this.adimForm.cikisFiyati, durumId: this.adimForm.durumId, sorumluKullaniciId: this.adimForm.sorumluKullaniciId, aciklama: this.adimForm.aciklama }).then(() => done()).catch(fail);
             }
         },
         durumGuncelleModalAc() {

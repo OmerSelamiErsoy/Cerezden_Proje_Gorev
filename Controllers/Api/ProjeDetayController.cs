@@ -32,6 +32,7 @@ public class ProjeDetayController : ControllerBase
             .OrderBy(d => d.Sira)
             .Include(d => d.Durum)
             .Include(d => d.Kategori)
+            .Include(d => d.AdetBirimi)
             .Include(d => d.SorumluKullanici)
             .Include(d => d.Yorumlar)
             .Select(d => new ProjeDetayItemDto
@@ -45,6 +46,11 @@ public class ProjeDetayController : ControllerBase
                 SorumluKullaniciId = d.SorumluKullaniciId,
                 SorumluAdSoyad = d.SorumluKullanici != null ? d.SorumluKullanici.AdSoyad : null,
                 Aciklama = d.Aciklama,
+                Adet = d.Adet,
+                AdetBirimiId = d.AdetBirimiId,
+                AdetBirimiAd = d.AdetBirimi != null ? d.AdetBirimi.Ad : null,
+                MaliyetFiyati = d.MaliyetFiyati,
+                CikisFiyati = d.CikisFiyati,
                 Sira = d.Sira,
                 YorumSayisi = d.Yorumlar!.Count
             })
@@ -68,6 +74,10 @@ public class ProjeDetayController : ControllerBase
             DurumId = durumId,
             SorumluKullaniciId = dto.SorumluKullaniciId,
             Aciklama = dto.Aciklama,
+            Adet = dto.Adet,
+            AdetBirimiId = dto.AdetBirimiId,
+            MaliyetFiyati = dto.MaliyetFiyati,
+            CikisFiyati = dto.CikisFiyati,
             Sira = maxSira + 1
         };
         _db.ProjeDetaylar.Add(entity);
@@ -96,6 +106,10 @@ public class ProjeDetayController : ControllerBase
         entity.DurumId = dto.DurumId;
         entity.SorumluKullaniciId = dto.SorumluKullaniciId;
         entity.Aciklama = dto.Aciklama;
+        entity.Adet = dto.Adet;
+        entity.AdetBirimiId = dto.AdetBirimiId;
+        entity.MaliyetFiyati = dto.MaliyetFiyati;
+        entity.CikisFiyati = dto.CikisFiyati;
         entity.Sira = dto.Sira;
 
         if (eskiDurumId != dto.DurumId)
@@ -243,6 +257,10 @@ public class ProjeDetayCreateDto
     public int? DurumId { get; set; }
     public int? SorumluKullaniciId { get; set; }
     public string? Aciklama { get; set; }
+    public decimal? Adet { get; set; }
+    public int? AdetBirimiId { get; set; }
+    public decimal? MaliyetFiyati { get; set; }
+    public decimal? CikisFiyati { get; set; }
 }
 
 public class ProjeDetayUpdateDto
@@ -252,6 +270,10 @@ public class ProjeDetayUpdateDto
     public int DurumId { get; set; }
     public int? SorumluKullaniciId { get; set; }
     public string? Aciklama { get; set; }
+    public decimal? Adet { get; set; }
+    public int? AdetBirimiId { get; set; }
+    public decimal? MaliyetFiyati { get; set; }
+    public decimal? CikisFiyati { get; set; }
     public int Sira { get; set; }
 }
 

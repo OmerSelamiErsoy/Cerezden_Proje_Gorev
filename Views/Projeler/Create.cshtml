@@ -40,6 +40,10 @@
     }
     .proje-create-adimlar .adim-satir .adim-ad-input { flex: 1; min-width: 0; }
     .proje-create-adimlar .adim-satir .adim-kategori { width: 160px; flex-shrink: 0; }
+    .proje-create-adimlar .adim-satir .adim-adet { width: 120px; flex-shrink: 0; }
+    .proje-create-adimlar .adim-satir .adim-birim { width: 160px; flex-shrink: 0; }
+    .proje-create-adimlar .adim-satir .adim-maliyet { width: 140px; flex-shrink: 0; }
+    .proje-create-adimlar .adim-satir .adim-cikis { width: 140px; flex-shrink: 0; }
     .proje-create-adimlar .adim-ekle-btn {
         margin-top: 10px;
         border-style: dashed;
@@ -154,9 +158,16 @@
                             <option :value="null">Kategori</option>
                             <option v-for="k in kategoriler" :key="k.id" :value="k.id">{{ k.ad }}</option>
                         </select>
+                        <input v-model.number="d.adet" type="number" step="0.01" min="0" class="form-control form-control-sm adim-adet" placeholder="Adet" />
+                        <select v-model="d.adetBirimiId" class="form-select form-select-sm adim-birim">
+                            <option :value="null">Birim</option>
+                            <option v-for="b in adetBirimleri" :key="b.id" :value="b.id">{{ b.ad }}</option>
+                        </select>
+                        <input v-model.number="d.maliyetFiyati" type="number" step="0.01" min="0" class="form-control form-control-sm adim-maliyet" placeholder="Maliyet" />
+                        <input v-model.number="d.cikisFiyati" type="number" step="0.01" min="0" class="form-control form-control-sm adim-cikis" placeholder="Çıkış" />
                         <button type="button" class="btn btn-outline-danger btn-sm" @@click="form.detaylar.splice(i,1)" title="Adımı sil"><i class="fas fa-times"></i></button>
                     </div>
-                    <button type="button" class="btn btn-outline-secondary btn-sm adim-ekle-btn" @@click="form.detaylar.push({ adimAdi: '', kategoriId: null, aciklama: '', sira: form.detaylar.length })"><i class="fas fa-plus me-1"></i> Adım Ekle</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm adim-ekle-btn" @@click="form.detaylar.push({ adimAdi: '', kategoriId: null, aciklama: '', adet: null, adetBirimiId: null, maliyetFiyati: null, cikisFiyati: null, sira: form.detaylar.length })"><i class="fas fa-plus me-1"></i> Adım Ekle</button>
                 </div>
             </div>
             <hr />
@@ -173,6 +184,7 @@ createApp({
         return {
             kullanicilar: [],
             kategoriler: [],
+            adetBirimleri: [],
             form: {
                 ad: '',
                 aciklama: '',
@@ -189,6 +201,7 @@ createApp({
     mounted() {
         axios.get('/api/Kullanicilar').then(r => { this.kullanicilar = r.data; });
         axios.get('/api/Parametre/kategoriler').then(r => { this.kategoriler = r.data; });
+        axios.get('/api/Parametre/adet-birimleri').then(r => { this.adetBirimleri = r.data; });
     },
     methods: {
         yetkiKullaniciToggle(k) {
@@ -201,7 +214,16 @@ createApp({
         kaydet() {
             const payload = { ...this.form };
             if (payload.yetkiTipi === 0) payload.yetkiKullaniciIds = null;
-            payload.detaylar = this.form.detaylar.map((d, i) => ({ adimAdi: d.adimAdi, kategoriId: d.kategoriId, aciklama: d.aciklama || '', sira: i + 1 }));
+            payload.detaylar = this.form.detaylar.map((d, i) => ({
+                adimAdi: d.adimAdi,
+                kategoriId: d.kategoriId,
+                aciklama: d.aciklama || '',
+                adet: (d.adet === '' || d.adet === undefined) ? null : d.adet,
+                adetBirimiId: d.adetBirimiId || null,
+                maliyetFiyati: (d.maliyetFiyati === '' || d.maliyetFiyati === undefined) ? null : d.maliyetFiyati,
+                cikisFiyati: (d.cikisFiyati === '' || d.cikisFiyati === undefined) ? null : d.cikisFiyati,
+                sira: i + 1
+            }));
             axios.post('/api/Projeler', payload).then(r => { window.location.href = '/Projeler/Detay/' + r.data.id; }).catch(e => alert('Hata: ' + (e.response?.data?.message || e.message)));
         }
     }

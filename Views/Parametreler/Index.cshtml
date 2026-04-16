@@ -15,6 +15,7 @@
     <ul class="nav nav-tabs mb-4">
         <li class="nav-item" v-if="genelYetkiliMi"><a class="nav-link" :class="{ active: tab === 'durum' }" href="#" @@click.prevent="tab='durum'">Durumlar</a></li>
         <li class="nav-item"><a class="nav-link" :class="{ active: tab === 'kategori' }" href="#" @@click.prevent="tab='kategori'">Kategoriler</a></li>
+        <li class="nav-item" v-if="genelYetkiliMi"><a class="nav-link" :class="{ active: tab === 'adetBirimi' }" href="#" @@click.prevent="tab='adetBirimi'">Adet Birimleri</a></li>
     </ul>
     <div v-show="genelYetkiliMi && tab === 'durum'">
         <div class="card">
@@ -29,6 +30,14 @@
             <div class="card-header d-flex justify-content-between align-items-center">Proje Detay Kategorileri<button class="btn btn-primary btn-sm" @@click="kategoriEkle()"><i class="fas fa-plus"></i> Ekle</button></div>
             <table class="table mb-0"><thead><tr><th>Ad</th><th>Sira</th><th></th></tr></thead><tbody>
                 <tr v-for="k in kategoriler" :key="k.id"><td>{{ k.ad }}</td><td>{{ k.sira }}</td><td><button class="btn btn-sm btn-outline-secondary" @@click="kategoriDuzenle(k)"><i class="fas fa-edit me-1"></i> Düzenle</button> <button class="btn btn-sm btn-outline-danger" @@click="kategoriSil(k.id)"><i class="fas fa-trash me-1"></i> Sil</button></td></tr>
+            </tbody></table>
+        </div>
+    </div>
+    <div v-show="genelYetkiliMi && tab === 'adetBirimi'">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">Adet Birimleri<button class="btn btn-primary btn-sm" @@click="adetBirimiEkle()"><i class="fas fa-plus"></i> Ekle</button></div>
+            <table class="table mb-0"><thead><tr><th>Ad</th><th>Sira</th><th></th></tr></thead><tbody>
+                <tr v-for="a in adetBirimleri" :key="a.id"><td>{{ a.ad }}</td><td>{{ a.sira }}</td><td><button class="btn btn-sm btn-outline-secondary" @@click="adetBirimiDuzenle(a)"><i class="fas fa-edit me-1"></i> Düzenle</button> <button class="btn btn-sm btn-outline-danger" @@click="adetBirimiSil(a.id)"><i class="fas fa-trash me-1"></i> Sil</button></td></tr>
             </tbody></table>
         </div>
     </div>
@@ -60,6 +69,20 @@
         </div>
         <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> İptal</button><button type="button" class="btn btn-primary" @@click="kategoriKaydet"><i class="fas fa-save me-1"></i> Kaydet</button></div>
     </div></div></div>
+    <div class="modal fade" id="adetBirimiModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">{{ adetBirimiForm.id ? 'Düzenle' : 'Yeni Adet Birimi' }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <div class="mb-3">
+                <label class="form-label">Ad</label>
+                <input v-model="adetBirimiForm.ad" class="form-control" />
+            </div>
+            <div>
+                <label class="form-label">Sıra</label>
+                <input v-model.number="adetBirimiForm.sira" type="number" class="form-control" />
+            </div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> İptal</button><button type="button" class="btn btn-primary" @@click="adetBirimiKaydet"><i class="fas fa-save me-1"></i> Kaydet</button></div>
+    </div></div></div>
     </div>
 </div>
 @section Scripts {
@@ -74,12 +97,17 @@ createApp({
             tab: genelYetkiliMi ? 'durum' : 'kategori',
             durumlar: [],
             kategoriler: [],
+            adetBirimleri: [],
             durumForm: { id: null, ad: '', sira: 0 },
-            kategoriForm: { id: null, ad: '', sira: 0 }
+            kategoriForm: { id: null, ad: '', sira: 0 },
+            adetBirimiForm: { id: null, ad: '', sira: 0 }
         };
     },
     mounted() {
-        var promises = [ axios.get('/api/Parametre/kategoriler').then(r => { this.kategoriler = r.data; }) ];
+        var promises = [
+            axios.get('/api/Parametre/kategoriler').then(r => { this.kategoriler = r.data; }),
+            axios.get('/api/Parametre/adet-birimleri').then(r => { this.adetBirimleri = r.data; })
+        ];
         if (this.genelYetkiliMi)
             promises.push(axios.get('/api/Parametre/durumlar').then(r => { this.durumlar = r.data; }));
         Promise.all(promises).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
@@ -87,6 +115,7 @@ createApp({
     methods: {
         durumYukle() { return axios.get('/api/Parametre/durumlar').then(r => { this.durumlar = r.data; }); },
         kategoriYukle() { return axios.get('/api/Parametre/kategoriler').then(r => { this.kategoriler = r.data; }); },
+        adetBirimiYukle() { return axios.get('/api/Parametre/adet-birimleri').then(r => { this.adetBirimleri = r.data; }); },
         durumEkle() { this.durumForm = { id: null, ad: '', sira: this.durumlar.length + 1 }; new bootstrap.Modal(document.getElementById('durumModal')).show(); },
         durumDuzenle(d) { this.durumForm = { id: d.id, ad: d.ad, sira: d.sira }; new bootstrap.Modal(document.getElementById('durumModal')).show(); },
         durumKaydet() {
@@ -112,6 +141,19 @@ createApp({
             if (!confirm('Silinsin mi?')) return;
             if (window.setPageLoading) window.setPageLoading(true);
             axios.delete('/api/Parametre/kategoriler/' + id).then(() => this.kategoriYukle()).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
+        },
+        adetBirimiEkle() { this.adetBirimiForm = { id: null, ad: '', sira: this.adetBirimleri.length + 1 }; new bootstrap.Modal(document.getElementById('adetBirimiModal')).show(); },
+        adetBirimiDuzenle(a) { this.adetBirimiForm = { id: a.id, ad: a.ad, sira: a.sira }; new bootstrap.Modal(document.getElementById('adetBirimiModal')).show(); },
+        adetBirimiKaydet() {
+            var payload = { ad: this.adetBirimiForm.ad || '', sira: this.adetBirimiForm.sira || 0 };
+            if (window.setPageLoading) window.setPageLoading(true);
+            var p = this.adetBirimiForm.id ? axios.put('/api/Parametre/adet-birimleri/' + this.adetBirimiForm.id, payload) : axios.post('/api/Parametre/adet-birimleri', payload);
+            p.then(() => this.adetBirimiYukle()).then(() => { bootstrap.Modal.getInstance(document.getElementById('adetBirimiModal')).hide(); if (window.setPageLoading) window.setPageLoading(false); }).catch(err => { if (window.setPageLoading) window.setPageLoading(false); alert(err.response?.data?.message || 'Kayıt işlemi başarısız.'); });
+        },
+        adetBirimiSil(id) {
+            if (!confirm('Silinsin mi?')) return;
+            if (window.setPageLoading) window.setPageLoading(true);
+            axios.delete('/api/Parametre/adet-birimleri/' + id).then(() => this.adetBirimiYukle()).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
         }
     }
 }).mount('#parametre-app');

@@ -43,6 +43,7 @@
                 <span class="text-muted small" style="min-width:1.5rem">{{ i + 1 }}.</span>
                 <span class="badge bg-light text-dark" v-if="d.kategoriAd">{{ d.kategoriAd }}</span>
                 <strong>{{ d.adimAdi }}</strong>
+                <span v-if="d.adet != null" class="badge bg-info text-dark">{{ d.adet }} {{ d.adetBirimiAd || '' }}</span>
                 <span v-if="d.aciklama" class="small text-muted">{{ d.aciklama }}</span>
             </li>
             <li v-if="!sablon.detaylar || sablon.detaylar.length === 0" class="list-group-item text-muted">Adım bulunmuyor.</li>

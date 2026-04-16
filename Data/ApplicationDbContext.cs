@@ -16,6 +16,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Kullanici> Kullanicilar => Set<Kullanici>();
     public DbSet<Durum> Durumlar => Set<Durum>();
     public DbSet<ProjeDetayKategori> ProjeDetayKategoriler => Set<ProjeDetayKategori>();
+    public DbSet<AdetBirimi> AdetBirimleri => Set<AdetBirimi>();
     public DbSet<Proje> Projeler => Set<Proje>();
     public DbSet<ProjeYetkiKullanici> ProjeYetkiKullanicilar => Set<ProjeYetkiKullanici>();
     public DbSet<ProjeDetay> ProjeDetaylar => Set<ProjeDetay>();
@@ -39,6 +40,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Kullanici>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Durum>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<ProjeDetayKategori>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<AdetBirimi>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Proje>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<ProjeYetkiKullanici>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<ProjeDetay>().HasQueryFilter(e => !e.IsDeleted);
@@ -159,6 +161,22 @@ public class ApplicationDbContext : DbContext
             .WithMany()
             .HasForeignKey(l => l.YeniDurumId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ProjeDetay>()
+            .Property(p => p.Adet)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<ProjeDetay>()
+            .Property(p => p.MaliyetFiyati)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<ProjeDetay>()
+            .Property(p => p.CikisFiyati)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<ProjeSablonDetay>()
+            .Property(p => p.Adet)
+            .HasPrecision(18, 2);
 
         modelBuilder.Entity<ProjeDetayDurumLog>()
             .HasOne(l => l.ProjeDetay)

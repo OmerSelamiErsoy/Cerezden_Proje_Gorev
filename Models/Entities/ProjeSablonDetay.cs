@@ -7,8 +7,11 @@ public class ProjeSablonDetay : BaseEntity
     public int? KategoriId { get; set; }
     public string AdimAdi { get; set; } = string.Empty;
     public string? Aciklama { get; set; }
+    public decimal? Adet { get; set; }
+    public int? AdetBirimiId { get; set; }
     public int Sira { get; set; }
 
     public virtual ProjeSablon ProjeSablon { get; set; } = null!;
     public virtual ProjeDetayKategori? Kategori { get; set; }
+    public virtual AdetBirimi? AdetBirimi { get; set; }
 }

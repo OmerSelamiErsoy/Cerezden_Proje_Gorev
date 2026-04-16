@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ProjeGorevYonetimi.Data;
 
@@ -11,9 +12,11 @@ using ProjeGorevYonetimi.Data;
 namespace ProjeGorevYonetimi.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260414093815_AddAdetBirimleri")]
+    partial class AddAdetBirimleri
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -544,20 +547,9 @@ namespace ProjeGorevYonetimi.Migrations
                     b.Property<string>("Aciklama")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal?>("Adet")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int?>("AdetBirimiId")
-                        .HasColumnType("int");
-
                     b.Property<string>("AdimAdi")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal?>("CikisFiyati")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("DeleteDate")
                         .HasColumnType("datetime2");
@@ -580,10 +572,6 @@ namespace ProjeGorevYonetimi.Migrations
                     b.Property<int?>("KategoriId")
                         .HasColumnType("int");
 
-                    b.Property<decimal?>("MaliyetFiyati")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<int>("ProjeId")
                         .HasColumnType("int");
 
@@ -600,8 +588,6 @@ namespace ProjeGorevYonetimi.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AdetBirimiId");
 
                     b.HasIndex("DurumId");
 
@@ -840,13 +826,6 @@ namespace ProjeGorevYonetimi.Migrations
                     b.Property<string>("Aciklama")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal?>("Adet")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int?>("AdetBirimiId")
-                        .HasColumnType("int");
-
                     b.Property<string>("AdimAdi")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -882,8 +861,6 @@ namespace ProjeGorevYonetimi.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AdetBirimiId");
 
                     b.HasIndex("KategoriId");
 
@@ -1082,10 +1059,6 @@ namespace ProjeGorevYonetimi.Migrations
 
             modelBuilder.Entity("ProjeGorevYonetimi.Models.Entities.ProjeDetay", b =>
                 {
-                    b.HasOne("ProjeGorevYonetimi.Models.Entities.AdetBirimi", "AdetBirimi")
-                        .WithMany()
-                        .HasForeignKey("AdetBirimiId");
-
                     b.HasOne("ProjeGorevYonetimi.Models.Entities.Durum", "Durum")
                         .WithMany("ProjeDetaylar")
                         .HasForeignKey("DurumId")
@@ -1106,8 +1079,6 @@ namespace ProjeGorevYonetimi.Migrations
                         .WithMany("ProjeDetaylarSorumlu")
                         .HasForeignKey("SorumluKullaniciId")
                         .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("AdetBirimi");
 
                     b.Navigation("Durum");
 
@@ -1192,10 +1163,6 @@ namespace ProjeGorevYonetimi.Migrations
 
             modelBuilder.Entity("ProjeGorevYonetimi.Models.Entities.ProjeSablonDetay", b =>
                 {
-                    b.HasOne("ProjeGorevYonetimi.Models.Entities.AdetBirimi", "AdetBirimi")
-                        .WithMany()
-                        .HasForeignKey("AdetBirimiId");
-
                     b.HasOne("ProjeGorevYonetimi.Models.Entities.ProjeDetayKategori", "Kategori")
                         .WithMany("SablonDetaylar")
                         .HasForeignKey("KategoriId");
@@ -1205,8 +1172,6 @@ namespace ProjeGorevYonetimi.Migrations
                         .HasForeignKey("ProjeSablonId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("AdetBirimi");
 
                     b.Navigation("Kategori");
 

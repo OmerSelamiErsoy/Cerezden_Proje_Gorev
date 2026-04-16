@@ -34,4 +34,25 @@ public static class DbInitializer
 
         await db.SaveChangesAsync();
     }
+
+    public static async Task EnsureAdetBirimleriAsync(ApplicationDbContext db)
+    {
+        if (await db.AdetBirimleri.IgnoreQueryFilters().AnyAsync())
+            return;
+
+        var now = DateTime.UtcNow;
+        var list = new[]
+        {
+            new AdetBirimi { Ad = "Adet", Sira = 1, InsertDate = now, IsDeleted = false },
+            new AdetBirimi { Ad = "Metre", Sira = 2, InsertDate = now, IsDeleted = false },
+            new AdetBirimi { Ad = "Kilogram", Sira = 3, InsertDate = now, IsDeleted = false },
+            new AdetBirimi { Ad = "Santim", Sira = 4, InsertDate = now, IsDeleted = false },
+            new AdetBirimi { Ad = "Milimetre", Sira = 5, InsertDate = now, IsDeleted = false },
+            new AdetBirimi { Ad = "Kilometre", Sira = 6, InsertDate = now, IsDeleted = false },
+            new AdetBirimi { Ad = "Litre", Sira = 7, InsertDate = now, IsDeleted = false }
+        };
+
+        db.AdetBirimleri.AddRange(list);
+        await db.SaveChangesAsync();
+    }
 }

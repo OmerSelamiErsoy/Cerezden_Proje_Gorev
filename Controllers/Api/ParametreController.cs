@@ -108,6 +108,57 @@ public class ParametreController : ControllerBase
         await _db.SaveChangesAsync(ct);
         return Ok();
     }
+
+    [HttpGet("adet-birimleri")]
+    public async Task<ActionResult<List<AdetBirimiDto>>> GetAdetBirimleri(CancellationToken ct)
+    {
+        var list = await _db.AdetBirimleri.AsNoTracking()
+            .OrderBy(a => a.Sira)
+            .Select(a => new AdetBirimiDto { Id = a.Id, Ad = a.Ad, Sira = a.Sira })
+            .ToListAsync(ct);
+        return Ok(list);
+    }
+
+    [HttpPost("adet-birimleri")]
+    public async Task<ActionResult<AdetBirimiDto>> PostAdetBirimi([FromBody] AdetBirimiDto? dto, CancellationToken ct)
+    {
+        if (!_yetkiService.GenelYetkiliMi())
+            return Forbid();
+        if (dto == null || string.IsNullOrWhiteSpace(dto.Ad))
+            return BadRequest(new { message = "Ad alanı gereklidir." });
+
+        var maxSira = await _db.AdetBirimleri.Select(a => (int?)a.Sira).MaxAsync(ct) ?? 0;
+        var entity = new AdetBirimi { Ad = dto.Ad.Trim(), Sira = dto.Sira > 0 ? dto.Sira : maxSira + 1 };
+        _db.AdetBirimleri.Add(entity);
+        await _db.SaveChangesAsync(ct);
+        return Ok(new AdetBirimiDto { Id = entity.Id, Ad = entity.Ad, Sira = entity.Sira });
+    }
+
+    [HttpPut("adet-birimleri/{id}")]
+    public async Task<IActionResult> PutAdetBirimi(int id, [FromBody] AdetBirimiDto dto, CancellationToken ct)
+    {
+        if (!_yetkiService.GenelYetkiliMi())
+            return Forbid();
+        var entity = await _db.AdetBirimleri.FindAsync(new object[] { id }, ct);
+        if (entity == null) return NotFound();
+        entity.Ad = dto.Ad;
+        entity.Sira = dto.Sira;
+        await _db.SaveChangesAsync(ct);
+        return Ok();
+    }
+
+    [HttpDelete("adet-birimleri/{id}")]
+    public async Task<IActionResult> DeleteAdetBirimi(int id, CancellationToken ct)
+    {
+        if (!_yetkiService.GenelYetkiliMi())
+            return Forbid();
+        var entity = await _db.AdetBirimleri.FindAsync(new object[] { id }, ct);
+        if (entity == null) return NotFound();
+        entity.IsDeleted = true;
+        entity.DeleteDate = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return Ok();
+    }
 }
 
 public class DurumDto
@@ -117,6 +168,13 @@ public class DurumDto
     [JsonPropertyName("sira")] public int Sira { get; set; }
 }
 public class KategoriDto
+{
+    [JsonPropertyName("id")] public int Id { get; set; }
+    [JsonPropertyName("ad")] public string Ad { get; set; } = "";
+    [JsonPropertyName("sira")] public int Sira { get; set; }
+}
+
+public class AdetBirimiDto
 {
     [JsonPropertyName("id")] public int Id { get; set; }
     [JsonPropertyName("ad")] public string Ad { get; set; } = "";

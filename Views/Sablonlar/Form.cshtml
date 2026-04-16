@@ -1,0 +1,158 @@
+@{
+    Layout = "_AdminLayout";
+    var sablonId = ViewData["SablonId"] as int? ?? 0;
+}
+<style>
+    #sablon-form-app .sablon-adimlar {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.25rem;
+    }
+    #sablon-form-app .sablon-adimlar .adimlar-baslik {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 1rem;
+    }
+    #sablon-form-app .sablon-adimlar .adim-satir {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 12px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        margin-bottom: 8px;
+    }
+    #sablon-form-app .sablon-adimlar .adim-satir .adim-numara {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        color: #64748b;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    #sablon-form-app .sablon-adimlar .adim-satir .adim-ad-input { flex: 1; min-width: 0; }
+    #sablon-form-app .sablon-adimlar .adim-kategori { width: 200px; flex-shrink: 0; }
+    #sablon-form-app .sablon-adimlar .adim-adet { width: 120px; flex-shrink: 0; }
+    #sablon-form-app .sablon-adimlar .adim-birim { width: 160px; flex-shrink: 0; }
+    #sablon-form-app .sablon-adimlar .adim-ekle-btn { margin-top: 10px; border-style: dashed; border-width: 2px; }
+</style>
+
+<div id="sablon-form-app" data-sablon-id="@sablonId" v-cloak>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="mb-0">{{ sablonId > 0 ? 'Şablon Düzenle' : 'Yeni Şablon' }}</h5>
+        <a href="/Sablonlar" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Listeye Dön</a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">Şablon Adı</label>
+                <input v-model="form.ad" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Açıklama</label>
+                <textarea v-model="form.aciklama" class="form-control" rows="2"></textarea>
+            </div>
+
+            <div class="mb-2"><label class="form-label mb-0">Adımlar</label></div>
+            <div class="sablon-adimlar">
+                <div class="adimlar-baslik"><i class="fas fa-list-ol me-1"></i> Şablon adımları</div>
+                <div v-for="(d, i) in form.detaylar" :key="i" class="adim-satir">
+                    <span class="adim-numara">{{ i + 1 }}</span>
+                    <input v-model="d.adimAdi" class="form-control form-control-sm adim-ad-input" placeholder="Adım adı" />
+                    <select v-model="d.kategoriId" class="form-select form-select-sm adim-kategori">
+                        <option :value="null">Kategori</option>
+                        <option v-for="k in kategoriler" :key="k.id" :value="k.id">{{ k.ad }}</option>
+                    </select>
+                    <input v-model.number="d.adet" type="number" step="0.01" min="0" class="form-control form-control-sm adim-adet" placeholder="Adet" />
+                    <select v-model="d.adetBirimiId" class="form-select form-select-sm adim-birim">
+                        <option :value="null">Birim</option>
+                        <option v-for="b in adetBirimleri" :key="b.id" :value="b.id">{{ b.ad }}</option>
+                    </select>
+                    <button type="button" class="btn btn-outline-danger btn-sm" @@click="form.detaylar.splice(i,1)" title="Adımı sil"><i class="fas fa-times"></i></button>
+                </div>
+                <button type="button" class="btn btn-outline-secondary btn-sm adim-ekle-btn" @@click="form.detaylar.push({ adimAdi: '', kategoriId: null, aciklama: '', adet: null, adetBirimiId: null })"><i class="fas fa-plus me-1"></i> Adım Ekle</button>
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+            <a href="/Sablonlar" class="btn btn-secondary"><i class="fas fa-times me-1"></i> İptal</a>
+            <button type="button" class="btn btn-primary" @@click="kaydet" :disabled="saving"><i class="fas fa-save me-1"></i> Kaydet</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+const { createApp } = Vue;
+createApp({
+    data() {
+        const root = document.getElementById('sablon-form-app');
+        const sablonId = parseInt(root.getAttribute('data-sablon-id') || '0', 10) || 0;
+        return {
+            sablonId,
+            kategoriler: [],
+            adetBirimleri: [],
+            form: { ad: '', aciklama: '', detaylar: [] },
+            saving: false
+        };
+    },
+    mounted() {
+        const promises = [
+            axios.get('/api/Parametre/kategoriler').then(r => { this.kategoriler = r.data; }),
+            axios.get('/api/Parametre/adet-birimleri').then(r => { this.adetBirimleri = r.data; })
+        ];
+        if (this.sablonId > 0) {
+            promises.push(
+                axios.get('/api/Sablon/' + this.sablonId).then(r => {
+                    this.form = {
+                        ad: r.data.ad || '',
+                        aciklama: r.data.aciklama || '',
+                        detaylar: (r.data.detaylar || []).map(d => ({
+                            adimAdi: d.adimAdi,
+                            kategoriId: d.kategoriId,
+                            aciklama: d.aciklama || '',
+                            adet: d.adet ?? null,
+                            adetBirimiId: d.adetBirimiId ?? null
+                        }))
+                    };
+                })
+            );
+        }
+        Promise.all(promises)
+            .then(() => { if (window.setPageLoading) window.setPageLoading(false); })
+            .catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
+    },
+    methods: {
+        kaydet() {
+            const payload = {
+                ad: this.form.ad || '',
+                aciklama: this.form.aciklama || null,
+                detaylar: (this.form.detaylar || []).map((d, i) => ({
+                    adimAdi: d.adimAdi || '',
+                    kategoriId: d.kategoriId || null,
+                    aciklama: d.aciklama || null,
+                    adet: (d.adet === '' || d.adet === undefined) ? null : d.adet,
+                    adetBirimiId: d.adetBirimiId || null,
+                    sira: i + 1
+                }))
+            };
+            this.saving = true;
+            if (window.setPageLoading) window.setPageLoading(true);
+            const p = this.sablonId > 0 ? axios.put('/api/Sablon/' + this.sablonId, payload) : axios.post('/api/Sablon', payload);
+            p.then(() => { window.location.href = '/Sablonlar'; })
+                .catch(err => { alert(err.response?.data?.message || 'Kayıt işlemi başarısız.'); })
+                .finally(() => { this.saving = false; if (window.setPageLoading) window.setPageLoading(false); });
+        }
+    }
+}).mount('#sablon-form-app');
+</script>
+}
+
