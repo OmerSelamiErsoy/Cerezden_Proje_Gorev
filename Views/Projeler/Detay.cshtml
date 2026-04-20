@@ -3,6 +3,10 @@
     var projeId = ViewData["ProjeId"] as int? ?? 0;
 }
 <style>
+    /* Adım satırı arka planı (durum id: 5=Tamamlandı, 4=İptal) */
+    #proje-detay-app .list-group-item.adim-tamamlandi { background-color: #d7ffeb !important; }
+    #proje-detay-app .list-group-item.adim-iptal { background-color: #ffd7d7 !important; }
+
     /* Adım Düzenle modal - Durum bölümü belirgin */
     #proje-detay-app #adimModal .adim-modal-durum-wrap {
         background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
@@ -149,7 +153,11 @@
             </div>
         </div>
         <ul id="proje-adimlar-list" class="list-group list-group-flush">
-            <li v-for="d in gosterilenDetaylar" :key="d.id" :data-id="d.id" class="list-group-item d-flex justify-content-between align-items-center flex-md-row flex-column align-items-stretch gap-2">
+            <li v-for="d in gosterilenDetaylar"
+                :key="d.id"
+                :data-id="d.id"
+                class="list-group-item d-flex justify-content-between align-items-center flex-md-row flex-column align-items-stretch gap-2"
+                :class="{ 'adim-tamamlandi': Number(d.durumId) === 5, 'adim-iptal': Number(d.durumId) === 4 }">
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     <div class="adim-drag-handle" title="Sıralamak için sürükleyin" aria-label="Sıra tutamacı">
                         <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
