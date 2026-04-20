@@ -32,6 +32,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<GorevDurumLog> GorevDurumLoglar => Set<GorevDurumLog>();
     public DbSet<ProjeDetayDurumLog> ProjeDetayDurumLoglar => Set<ProjeDetayDurumLog>();
     public DbSet<CrossAppLoginToken> CrossAppLoginTokens => Set<CrossAppLoginToken>();
+    public DbSet<NotGrup> NotGruplar => Set<NotGrup>();
+    public DbSet<NotGrupYetkiKullanici> NotGrupYetkiKullanicilar => Set<NotGrupYetkiKullanici>();
+    public DbSet<Not> Notlar => Set<Not>();
+    public DbSet<NotDosya> NotDosyalar => Set<NotDosya>();
+    public DbSet<NotYetkiKullanici> NotYetkiKullanicilar => Set<NotYetkiKullanici>();
 
     private int DefaultUserId => _userIdAccessor?.CurrentUserId ?? 1;
 
@@ -53,6 +58,11 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<GorevAtama>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<GorevYorum>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<GorevYorumDosya>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<NotGrup>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<NotGrupYetkiKullanici>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<Not>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<NotDosya>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<NotYetkiKullanici>().HasQueryFilter(e => !e.IsDeleted);
 
         modelBuilder.Entity<ProjeDetayYorum>()
             .HasOne(y => y.InsertedByUser)
@@ -121,6 +131,54 @@ public class ApplicationDbContext : DbContext
             .HasMany(p => p.YetkiKullanicilar)
             .WithOne(y => y.Proje)
             .HasForeignKey(y => y.ProjeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<NotGrup>()
+            .HasOne(g => g.OlusturanKullanici)
+            .WithMany()
+            .HasForeignKey(g => g.OlusturanKullaniciId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<NotGrup>()
+            .HasMany(g => g.YetkiKullanicilar)
+            .WithOne(y => y.NotGrup)
+            .HasForeignKey(y => y.NotGrupId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<NotGrupYetkiKullanici>()
+            .HasOne(y => y.Kullanici)
+            .WithMany()
+            .HasForeignKey(y => y.KullaniciId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Not>()
+            .HasOne(n => n.NotGrup)
+            .WithMany(g => g.Notlar)
+            .HasForeignKey(n => n.NotGrupId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Not>()
+            .HasOne(n => n.OlusturanKullanici)
+            .WithMany()
+            .HasForeignKey(n => n.OlusturanKullaniciId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Not>()
+            .HasMany(n => n.Dosyalar)
+            .WithOne(d => d.Not)
+            .HasForeignKey(d => d.NotId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Not>()
+            .HasMany(n => n.YetkiKullanicilar)
+            .WithOne(y => y.Not)
+            .HasForeignKey(y => y.NotId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<NotYetkiKullanici>()
+            .HasOne(y => y.Kullanici)
+            .WithMany()
+            .HasForeignKey(y => y.KullaniciId)
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<ProjeDetay>()

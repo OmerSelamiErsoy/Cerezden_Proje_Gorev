@@ -1,0 +1,160 @@
+@{
+    Layout = "_AdminLayout";
+}
+
+@section Head {
+    <style>
+        #notlar-index-app .not-row {
+            padding-top: 14px;
+            padding-bottom: 14px;
+        }
+        #notlar-index-app .not-row:hover {
+            background: #f8fafc;
+        }
+        #notlar-index-app .not-title-wrap {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            min-width: 0;
+        }
+        #notlar-index-app .not-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            color: #0f172a;
+        }
+        #notlar-index-app .not-icon.shared {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #1d4ed8;
+        }
+        #notlar-index-app .not-title {
+            line-height: 1.2;
+            word-break: break-word;
+        }
+        #notlar-index-app .meta-right {
+            min-width: 220px;
+        }
+        @@media (max-width: 576px) {
+            #notlar-index-app .meta-right {
+                min-width: 0;
+            }
+        }
+    </style>
+}
+
+<div id="notlar-index-app" data-vue-page v-cloak>
+    <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
+        <div class="w-100 text-center">
+            <div class="small text-muted mb-2">Yükleniyor...</div>
+            <div class="progress" style="max-width:260px;margin:0 auto;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="v-cloak-hidden">
+        <div class="card p-4 mb-3">
+            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <div>
+                    <h4 class="mb-1">Notlar</h4>
+                    <div class="small text-muted">Notlar listelenir. Yeni not ekleyebilirsiniz.</div>
+                </div>
+                <a class="btn btn-primary btn-sm" href="/Notlar/Yeni">
+                    <i class="fas fa-plus me-1"></i> Yeni Not
+                </a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <div class="small text-muted">Liste</div>
+                <input v-model="q" class="form-control form-control-sm" style="min-width:220px;max-width:280px" placeholder="Not ara..." />
+            </div>
+            <div class="list-group list-group-flush">
+                <a v-for="n in filtreliNotlar" :key="n.id" class="list-group-item list-group-item-action not-row d-flex justify-content-between align-items-center"
+                   :href="'/Notlar/Detay/' + n.id">
+                    <div class="w-100 d-flex justify-content-between align-items-start gap-3">
+                        <div class="not-title-wrap">
+                            <div class="not-icon" :class="{ shared: Number(n.yetkiTipi || 0) === 1 }">
+                                <i class="fas" :class="Number(n.yetkiTipi || 0) === 1 ? 'fa-note-sticky' : 'fa-file-lines'"></i>
+                            </div>
+                            <div class="fw-semibold not-title">{{ n.baslik }}</div>
+                        </div>
+
+                        <div class="text-end meta-right">
+                            <div class="small text-muted d-flex justify-content-end gap-3 flex-wrap">
+                                <span v-if="Number(n.yetkiTipi || 0) === 0"><i class="fas fa-lock me-1"></i> Sadece ben</span>
+                                <span v-else><i class="fas fa-users me-1"></i> Paylaşımlı</span>
+                                <span><i class="fas fa-calendar-alt me-1"></i> {{ formatDate(n.insertDate) }}</span>
+                            </div>
+                            <div class="small text-muted mt-1">
+                                <i class="fas fa-user me-1"></i> {{ n.olusturanAdSoyad || '-' }}
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <div v-if="!loading && notlar.length === 0" class="list-group-item text-muted">
+                    Henüz not yok. “Yeni Not” ile ekleyin.
+                </div>
+                <div v-else-if="!loading && filtreliNotlar.length === 0" class="list-group-item text-muted">
+                    Aramaya göre not bulunamadı.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+const { createApp } = Vue;
+
+createApp({
+    data() {
+        return {
+            loading: true,
+            q: '',
+            notlar: []
+        };
+    },
+    computed: {
+        filtreliNotlar() {
+            const q = (this.q || '').trim().toLowerCase();
+            if (!q) return this.notlar || [];
+            return (this.notlar || []).filter(n => (n.baslik || '').toLowerCase().includes(q));
+        }
+    },
+    mounted() {
+        axios.get('/api/notlar')
+            .then(r => { this.notlar = r.data || []; })
+            .finally(() => {
+                this.loading = false;
+                if (window.setPageLoading) window.setPageLoading(false);
+            });
+    },
+    methods: {
+        formatDate(v) {
+            if (!v) return '-';
+            try {
+                const d = new Date(v);
+                if (isNaN(d.getTime())) return '-';
+                return d.toLocaleDateString('tr-TR');
+            } catch {
+                return '-';
+            }
+        },
+        yenile() {
+            return axios.get('/api/notlar').then(r => { this.notlar = r.data || []; });
+        }
+    }
+}).mount('#notlar-index-app');
+</script>
+}
+

@@ -29,6 +29,7 @@
             <button type="button" class="sidebar-close d-lg-none" id="sidebarClose" aria-label="Menüyü kapat"><i class="fas fa-times"></i></button>
             <nav class="sidebar-nav">
                 <a asp-controller="Dashboard" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")"><i class="fas fa-th-large"></i> Dashboard</a>
+                <a asp-controller="Notlar" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Notlar" ? "active" : "")"><i class="fas fa-note-sticky"></i> Notlar</a>
                 <a asp-controller="Gorevler" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Gorevler" ? "active" : "")"><i class="fas fa-list-check"></i> Görevler</a>
                 <a asp-controller="Projeler" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Projeler" ? "active" : "")"><i class="fas fa-folder-open"></i> Projeler</a>
                 <a asp-controller="Sablonlar" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Sablonlar" ? "active" : "")"><i class="fas fa-copy"></i> Proje Şablonları</a>

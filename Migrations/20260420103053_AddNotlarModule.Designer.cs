@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ProjeGorevYonetimi.Data;
 
@@ -11,9 +12,11 @@ using ProjeGorevYonetimi.Data;
 namespace ProjeGorevYonetimi.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260420103053_AddNotlarModule")]
+    partial class AddNotlarModule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -508,9 +511,6 @@ namespace ProjeGorevYonetimi.Migrations
                     b.Property<int?>("UpdatedByUserId")
                         .HasColumnType("int");
 
-                    b.Property<int>("YetkiTipi")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("NotGrupId");
@@ -661,50 +661,6 @@ namespace ProjeGorevYonetimi.Migrations
                     b.HasIndex("NotGrupId");
 
                     b.ToTable("NotGrupYetkiKullanicilar");
-                });
-
-            modelBuilder.Entity("ProjeGorevYonetimi.Models.Entities.NotYetkiKullanici", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime?>("DeleteDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("DeletedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("InsertDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("InsertedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("KullaniciId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("NotId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdateDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("UpdatedByUserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("KullaniciId");
-
-                    b.HasIndex("NotId");
-
-                    b.ToTable("NotYetkiKullanicilar");
                 });
 
             modelBuilder.Entity("ProjeGorevYonetimi.Models.Entities.Proje", b =>
@@ -1360,25 +1316,6 @@ namespace ProjeGorevYonetimi.Migrations
                     b.Navigation("NotGrup");
                 });
 
-            modelBuilder.Entity("ProjeGorevYonetimi.Models.Entities.NotYetkiKullanici", b =>
-                {
-                    b.HasOne("ProjeGorevYonetimi.Models.Entities.Kullanici", "Kullanici")
-                        .WithMany()
-                        .HasForeignKey("KullaniciId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ProjeGorevYonetimi.Models.Entities.Not", "Not")
-                        .WithMany("YetkiKullanicilar")
-                        .HasForeignKey("NotId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Kullanici");
-
-                    b.Navigation("Not");
-                });
-
             modelBuilder.Entity("ProjeGorevYonetimi.Models.Entities.Proje", b =>
                 {
                     b.HasOne("ProjeGorevYonetimi.Models.Entities.Kullanici", "OlusturanKullanici")
@@ -1596,8 +1533,6 @@ namespace ProjeGorevYonetimi.Migrations
             modelBuilder.Entity("ProjeGorevYonetimi.Models.Entities.Not", b =>
                 {
                     b.Navigation("Dosyalar");
-
-                    b.Navigation("YetkiKullanicilar");
                 });
 
             modelBuilder.Entity("ProjeGorevYonetimi.Models.Entities.NotGrup", b =>

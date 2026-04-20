@@ -1,0 +1,250 @@
+@{
+    Layout = "_AdminLayout";
+}
+
+@section Head {
+    <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
+    <style>
+        #notlar-yeni-app .ql-editor { min-height: 420px; }
+        #notlar-yeni-app .ql-container { border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; }
+        #notlar-yeni-app .ql-toolbar { border-top-left-radius: 10px; border-top-right-radius: 10px; }
+
+        /* Paylaşılacak Kişiler - Projeler/Create ile aynı */
+        #notlar-yeni-app .paylasilacak-kisiler-list {
+            max-height: 360px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 8px;
+            background: #fafafa;
+        }
+        #notlar-yeni-app .paylasilacak-kisiler-list .paylasilacak-kisi-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        #notlar-yeni-app .paylasilacak-kisiler-list .paylasilacak-kisi-item:hover { background: #f1f5f9; }
+        #notlar-yeni-app .paylasilacak-kisiler-list .paylasilacak-kisi-item .custom-checkbox-wrap {
+            flex-shrink: 0;
+            width: 22px;
+            height: 22px;
+            position: relative;
+            border-radius: 6px;
+            border: 2px solid #cbd5e1;
+            background: #fff;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        #notlar-yeni-app .paylasilacak-kisiler-list .paylasilacak-kisi-item.selected .custom-checkbox-wrap {
+            background: #3b82f6;
+            border-color: #3b82f6;
+        }
+        #notlar-yeni-app .paylasilacak-kisiler-list .paylasilacak-kisi-item .custom-checkbox-wrap .check-icon {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        #notlar-yeni-app .paylasilacak-kisiler-list .paylasilacak-kisi-item.selected .custom-checkbox-wrap .check-icon { opacity: 1; }
+        #notlar-yeni-app .paylasilacak-kisiler-list .paylasilacak-kisi-item .custom-checkbox-wrap .check-icon svg {
+            width: 14px;
+            height: 14px;
+            stroke: #fff;
+        }
+        #notlar-yeni-app .paylasilacak-kisiler-list .paylasilacak-kisi-item .kisi-adi { flex: 1; font-weight: 500; color: #1e293b; }
+        #notlar-yeni-app .paylasilacak-kisiler-list .paylasilacak-kisi-item .kisi-ceptel { font-size: 0.875rem; color: #64748b; }
+    </style>
+}
+
+<div id="notlar-yeni-app" data-vue-page v-cloak>
+    <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
+        <div class="w-100 text-center">
+            <div class="small text-muted mb-2">Yükleniyor...</div>
+            <div class="progress" style="max-width:260px;margin:0 auto;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="v-cloak-hidden">
+        <div class="card p-4 mb-3">
+            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <div>
+                    <h4 class="mb-1">Yeni Not</h4>
+                    <div class="small text-muted">Notunuzu yazın, isterseniz kişi seçerek paylaşın.</div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="/Notlar" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Notlar</a>
+                    <button class="btn btn-primary btn-sm" type="button" @@click="olustur" :disabled="saving || !editorReady">
+                        <i class="fas fa-check me-1"></i> Oluştur
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Not Adı</label>
+                            <input v-model="form.baslik" class="form-control" placeholder="Not adı" />
+                        </div>
+
+                        <div>
+                            <label class="form-label">Yetkilendirme</label>
+                            <div>
+                                <label class="me-3"><input type="radio" v-model="form.yetkiTipi" :value="0" /> Sadece ben</label>
+                                <label><input type="radio" v-model="form.yetkiTipi" :value="1" /> Seçtiğim kişiler</label>
+                            </div>
+                            <div v-if="form.yetkiTipi === 1" class="mt-2">
+                                <div class="paylasilacak-kisiler-list">
+                                    <div v-for="k in kullanicilar" :key="k.id" class="paylasilacak-kisi-item"
+                                         :class="{ selected: (form.yetkiKullaniciIds || []).indexOf(k.id) !== -1 }"
+                                         @@click="yetkiKullaniciToggle(k)">
+                                        <div class="custom-checkbox-wrap">
+                                            <span class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                                        </div>
+                                        <span class="kisi-adi">{{ k.adSoyad }}</span>
+                                        <span class="kisi-ceptel">{{ k.cepTel || '-' }}</span>
+                                    </div>
+                                </div>
+                                <small class="text-muted">Birden fazla kişi seçebilirsiniz.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label mb-0">Not İçeriği</label>
+                            <div class="small text-muted">Metin biçimlendirme ve görsel ekleme destekli.</div>
+                        </div>
+                        <div id="notYeniEditor"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+<script>
+const { createApp } = Vue;
+
+function uploadImageFile(file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    return axios.post('/api/notlar/gorsel/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+        .then(r => (r.data && (r.data.url || r.data.default)) || null);
+}
+
+createApp({
+    data() {
+        return {
+            loading: true,
+            saving: false,
+            editorReady: false,
+            kullanicilar: [],
+            form: { baslik: '', icerikHtml: '', yetkiTipi: 0, yetkiKullaniciIds: [] }
+        };
+    },
+    mounted() {
+        axios.get('/api/Kullanicilar')
+            .then(r => { this.kullanicilar = r.data || []; })
+            .finally(() => {
+                this.loading = false;
+                if (window.setPageLoading) window.setPageLoading(false);
+                this.$nextTick(() => this.initEditor());
+            });
+    },
+    methods: {
+        yetkiKullaniciToggle(k) {
+            const ids = this.form.yetkiKullaniciIds || [];
+            const idx = ids.indexOf(k.id);
+            if (idx === -1) ids.push(k.id);
+            else ids.splice(idx, 1);
+            this.form.yetkiKullaniciIds = ids;
+        },
+        initEditor() {
+            const el = document.getElementById('notYeniEditor');
+            if (!el) return;
+            el.innerHTML = '';
+
+            const self = this;
+            const toolbarOptions = [
+                [{ header: [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ color: [] }, { background: [] }],
+                [{ list: 'ordered' }, { list: 'bullet' }],
+                [{ align: [] }],
+                ['link', 'image'],
+                ['clean']
+            ];
+
+            const quill = new Quill(el, {
+                theme: 'snow',
+                modules: { toolbar: toolbarOptions },
+                placeholder: 'Notunuzu buraya yazın...'
+            });
+
+            quill.on('text-change', function() {
+                self.form.icerikHtml = quill.root.innerHTML;
+            });
+
+            const toolbar = quill.getModule('toolbar');
+            toolbar.addHandler('image', function() {
+                const input = document.createElement('input');
+                input.setAttribute('type', 'file');
+                input.setAttribute('accept', 'image/*');
+                input.click();
+                input.onchange = function() {
+                    const file = input.files && input.files[0];
+                    if (!file) return;
+                    uploadImageFile(file).then(url => {
+                        if (!url) { alert('Görsel yüklenemedi.'); return; }
+                        const range = quill.getSelection(true) || { index: quill.getLength(), length: 0 };
+                        quill.insertEmbed(range.index, 'image', url, 'user');
+                        quill.setSelection(range.index + 1, 0);
+                    }).catch(err => {
+                        console.error(err);
+                        alert('Görsel yüklenemedi.');
+                    });
+                };
+            });
+
+            self._quill = quill;
+            self.editorReady = true;
+        },
+        olustur() {
+            if (!this.form.baslik || !this.form.baslik.trim()) { alert('Not adı zorunludur.'); return; }
+            this.saving = true;
+            const payload = {
+                baslik: this.form.baslik.trim(),
+                icerikHtml: this._quill ? this._quill.root.innerHTML : (this.form.icerikHtml || ''),
+                yetkiTipi: this.form.yetkiTipi,
+                yetkiKullaniciIds: this.form.yetkiTipi === 1 ? (this.form.yetkiKullaniciIds || []) : null
+            };
+            axios.post('/api/notlar', payload)
+                .then(r => { window.location.href = '/Notlar/Detay/' + r.data.id; })
+                .catch(e => alert(e.response?.data?.message || 'Oluşturulamadı.'))
+                .finally(() => { this.saving = false; });
+        }
+    },
+    beforeUnmount() {
+        this._quill = null;
+    }
+}).mount('#notlar-yeni-app');
+</script>
+}
+
