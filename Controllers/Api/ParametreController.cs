@@ -159,6 +159,59 @@ public class ParametreController : ControllerBase
         await _db.SaveChangesAsync(ct);
         return Ok();
     }
+
+    // Saha Denetim Kategorileri
+    [HttpGet("saha-denetim-kategorileri")]
+    public async Task<ActionResult<List<SahaDenetimKategoriDto>>> GetSahaDenetimKategorileri(CancellationToken ct)
+    {
+        var list = await _db.SahaDenetimKategoriler
+            .AsNoTracking()
+            .OrderBy(x => x.Ad)
+            .Select(x => new SahaDenetimKategoriDto { Id = x.Id, Ad = x.Ad })
+            .ToListAsync(ct);
+        return Ok(list);
+    }
+
+    [HttpPost("saha-denetim-kategorileri")]
+    public async Task<ActionResult<SahaDenetimKategoriDto>> PostSahaDenetimKategori([FromBody] SahaDenetimKategoriDto? dto, CancellationToken ct)
+    {
+        if (!_yetkiService.GenelYetkiliMi())
+            return Forbid();
+        if (dto == null || string.IsNullOrWhiteSpace(dto.Ad))
+            return BadRequest(new { message = "Kategori adı gereklidir." });
+
+        var entity = new SahaDenetimKategori { Ad = dto.Ad.Trim() };
+        _db.SahaDenetimKategoriler.Add(entity);
+        await _db.SaveChangesAsync(ct);
+        return Ok(new SahaDenetimKategoriDto { Id = entity.Id, Ad = entity.Ad });
+    }
+
+    [HttpPut("saha-denetim-kategorileri/{id}")]
+    public async Task<IActionResult> PutSahaDenetimKategori(int id, [FromBody] SahaDenetimKategoriDto dto, CancellationToken ct)
+    {
+        if (!_yetkiService.GenelYetkiliMi())
+            return Forbid();
+        if (string.IsNullOrWhiteSpace(dto.Ad))
+            return BadRequest(new { message = "Kategori adı gereklidir." });
+        var entity = await _db.SahaDenetimKategoriler.FindAsync(new object[] { id }, ct);
+        if (entity == null) return NotFound();
+        entity.Ad = dto.Ad.Trim();
+        await _db.SaveChangesAsync(ct);
+        return Ok();
+    }
+
+    [HttpDelete("saha-denetim-kategorileri/{id}")]
+    public async Task<IActionResult> DeleteSahaDenetimKategori(int id, CancellationToken ct)
+    {
+        if (!_yetkiService.GenelYetkiliMi())
+            return Forbid();
+        var entity = await _db.SahaDenetimKategoriler.FindAsync(new object[] { id }, ct);
+        if (entity == null) return NotFound();
+        entity.IsDeleted = true;
+        entity.DeleteDate = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return Ok();
+    }
 }
 
 public class DurumDto
@@ -179,4 +232,10 @@ public class AdetBirimiDto
     [JsonPropertyName("id")] public int Id { get; set; }
     [JsonPropertyName("ad")] public string Ad { get; set; } = "";
     [JsonPropertyName("sira")] public int Sira { get; set; }
+}
+
+public class SahaDenetimKategoriDto
+{
+    [JsonPropertyName("id")] public int Id { get; set; }
+    [JsonPropertyName("ad")] public string Ad { get; set; } = "";
 }

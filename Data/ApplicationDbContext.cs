@@ -37,6 +37,12 @@ public class ApplicationDbContext : DbContext
     public DbSet<Not> Notlar => Set<Not>();
     public DbSet<NotDosya> NotDosyalar => Set<NotDosya>();
     public DbSet<NotYetkiKullanici> NotYetkiKullanicilar => Set<NotYetkiKullanici>();
+    public DbSet<SahaDenetimKategori> SahaDenetimKategoriler => Set<SahaDenetimKategori>();
+    public DbSet<SahaDenetim> SahaDenetimler => Set<SahaDenetim>();
+    public DbSet<SahaDenetimAdim> SahaDenetimAdimlar => Set<SahaDenetimAdim>();
+    public DbSet<SahaDenetimAdimIlgiliKisi> SahaDenetimAdimIlgiliKisiler => Set<SahaDenetimAdimIlgiliKisi>();
+    public DbSet<SahaDenetimAdimIlgiliUrun> SahaDenetimAdimIlgiliUrunler => Set<SahaDenetimAdimIlgiliUrun>();
+    public DbSet<SahaDenetimAdimFoto> SahaDenetimAdimFotolar => Set<SahaDenetimAdimFoto>();
 
     private int DefaultUserId => _userIdAccessor?.CurrentUserId ?? 1;
 
@@ -63,6 +69,12 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Not>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<NotDosya>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<NotYetkiKullanici>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<SahaDenetimKategori>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<SahaDenetim>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<SahaDenetimAdim>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<SahaDenetimAdimIlgiliKisi>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<SahaDenetimAdimIlgiliUrun>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<SahaDenetimAdimFoto>().HasQueryFilter(e => !e.IsDeleted);
 
         modelBuilder.Entity<ProjeDetayYorum>()
             .HasOne(y => y.InsertedByUser)
@@ -181,6 +193,54 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(y => y.KullaniciId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        modelBuilder.Entity<SahaDenetim>()
+            .HasOne(x => x.OlusturanKullanici)
+            .WithMany()
+            .HasForeignKey(x => x.OlusturanKullaniciId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<SahaDenetim>()
+            .HasOne(x => x.KapatanKullanici)
+            .WithMany()
+            .HasForeignKey(x => x.KapatanKullaniciId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<SahaDenetim>()
+            .HasOne(x => x.GeriAcanKullanici)
+            .WithMany()
+            .HasForeignKey(x => x.GeriAcanKullaniciId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<SahaDenetim>()
+            .HasMany(x => x.Adimlar)
+            .WithOne(a => a.SahaDenetim)
+            .HasForeignKey(a => a.SahaDenetimId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<SahaDenetimAdim>()
+            .HasOne(a => a.Kategori)
+            .WithMany()
+            .HasForeignKey(a => a.SahaDenetimKategoriId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<SahaDenetimAdim>()
+            .HasMany(a => a.IlgiliKisiler)
+            .WithOne(k => k.SahaDenetimAdim)
+            .HasForeignKey(k => k.SahaDenetimAdimId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<SahaDenetimAdim>()
+            .HasMany(a => a.IlgiliUrunler)
+            .WithOne(u => u.SahaDenetimAdim)
+            .HasForeignKey(u => u.SahaDenetimAdimId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<SahaDenetimAdim>()
+            .HasMany(a => a.Fotograflar)
+            .WithOne(f => f.SahaDenetimAdim)
+            .HasForeignKey(f => f.SahaDenetimAdimId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         modelBuilder.Entity<ProjeDetay>()
             .HasMany(d => d.Yorumlar)
             .WithOne(y => y.ProjeDetay)
@@ -233,6 +293,10 @@ public class ApplicationDbContext : DbContext
             .HasPrecision(18, 2);
 
         modelBuilder.Entity<ProjeSablonDetay>()
+            .Property(p => p.Adet)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<SahaDenetimAdimIlgiliUrun>()
             .Property(p => p.Adet)
             .HasPrecision(18, 2);
 

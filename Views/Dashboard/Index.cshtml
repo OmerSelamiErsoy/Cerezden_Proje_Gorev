@@ -75,6 +75,78 @@
         margin-bottom: 0 !important;
         flex-shrink: 0;
     }
+
+    /* Notlar + Saha Denetim kartları */
+    #dashboard-app .dash-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    @@media (min-width: 992px) {
+        #dashboard-app .dash-grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+    #dashboard-app .dash-mini-card {
+        background: #fff;
+        border-radius: var(--radius-lg, 14px);
+        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        overflow: hidden;
+        height: 100%;
+    }
+    #dashboard-app .dash-mini-card .card-header {
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 0.9rem 1.1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    #dashboard-app .dash-mini-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 700;
+        color: #0f172a;
+        letter-spacing: -0.01em;
+    }
+    #dashboard-app .dash-mini-sub {
+        font-size: 0.8rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+    #dashboard-app .dash-mini-body { padding: 1rem 1.1rem; }
+    #dashboard-app .dash-kpi-row { display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom: 0.85rem; }
+    #dashboard-app .dash-kpi {
+        padding: 0.45rem 0.7rem;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #334155;
+        border: 1px solid #e2e8f0;
+        font-size: 0.8rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        white-space: nowrap;
+    }
+    #dashboard-app .dash-kpi strong { color:#0f172a; font-weight: 800; }
+    #dashboard-app .dash-list { margin:0; padding:0; list-style:none; }
+    #dashboard-app .dash-list li { padding: 0.55rem 0; border-top: 1px solid #f1f5f9; }
+    #dashboard-app .dash-list li:first-child { border-top: 0; padding-top: 0; }
+    #dashboard-app .dash-item-title { display:flex; gap:0.5rem; align-items:center; justify-content:space-between; }
+    #dashboard-app .dash-item-title a { color:#0d9488; text-decoration:none; font-weight: 700; }
+    #dashboard-app .dash-item-title a:hover { text-decoration: underline; color:#0f766e; }
+    #dashboard-app .dash-item-meta { font-size:0.78rem; color:#64748b; margin-top: 0.15rem; display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; }
+    #dashboard-app .badge-soft {
+        border-radius: 999px;
+        padding: 0.2rem 0.5rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        border: 1px solid transparent;
+    }
+    #dashboard-app .badge-soft.private { background:#eef2ff; color:#3730a3; border-color:#e0e7ff; }
+    #dashboard-app .badge-soft.shared { background:#ecfeff; color:#155e75; border-color:#cffafe; }
 </style>
 <div id="dashboard-app" data-vue-page v-cloak>
     <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
@@ -118,60 +190,80 @@
             </div>
         </div>
 
-        <div class="dashboard-section dashboard-durum-section" v-if="genelYetkiliMi">
-            <div class="dashboard-section-title sorumlu"><i class="fas fa-user-check"></i> Sorumlusu olduğum aktif görev adetleri</div>
-            <div class="row g-2">
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <div class="stat-card-icon warning"><i class="fas fa-clock"></i></div>
-                        <div class="stat-card-label small text-muted">İşlem Bekliyor</div>
-                        <div class="stat-card-value">{{ sorumluIslemBekliyorSayi }}</div>
+        <div class="dashboard-section">
+            <div class="dashboard-section-title"><i class="fas fa-layer-group"></i> Notlar & Saha Denetim</div>
+            <div class="dash-grid-2">
+                <div class="dash-mini-card card">
+                    <div class="card-header">
+                        <div>
+                            <div class="dash-mini-title"><i class="fas fa-note-sticky text-warning"></i> Notlar</div>
+                            <div class="dash-mini-sub">Hızlı erişim ve son notlar</div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a class="btn btn-sm btn-outline-secondary" href="/Notlar/Yeni"><i class="fas fa-plus me-1"></i> Yeni</a>
+                            <a class="btn btn-sm btn-outline-primary" href="/Notlar"><i class="fas fa-arrow-right me-1"></i> Notlar</a>
+                        </div>
+                    </div>
+                    <div class="dash-mini-body">
+                        <div class="dash-kpi-row">
+                            <span class="dash-kpi"><i class="fas fa-note-sticky"></i> Toplam <strong>{{ notlar.toplam ?? 0 }}</strong></span>
+                            <span class="dash-kpi"><i class="fas fa-user-lock"></i> Sadece ben <strong>{{ notlar.sadeceBen ?? 0 }}</strong></span>
+                            <span class="dash-kpi"><i class="fas fa-user-group"></i> Paylaşımlı <strong>{{ notlar.paylasimli ?? 0 }}</strong></span>
+                        </div>
+                        <ul class="dash-list" v-if="(notlar.sonNotlar || []).length > 0">
+                            <li v-for="n in notlar.sonNotlar" :key="n.id">
+                                <div class="dash-item-title">
+                                    <a :href="'/Notlar/Detay/' + n.id">{{ n.baslik }}</a>
+                                    <span v-if="n.yetkiTipi === 1" class="badge-soft shared">Paylaşımlı</span>
+                                    <span v-else class="badge-soft private">Sadece ben</span>
+                                </div>
+                                <div class="dash-item-meta">
+                                    <span><i class="fas fa-calendar-alt me-1"></i>{{ formatDate(n.insertDate) }}</span>
+                                    <span class="mx-1">•</span>
+                                    <span><i class="fas fa-user me-1"></i>{{ n.olusturanAdSoyad || '-' }}</span>
+                                </div>
+                            </li>
+                        </ul>
+                        <div v-else class="text-muted small">Henüz not yok. “Yeni” ile ekleyebilirsiniz.</div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <div class="stat-card-icon secondary"><i class="fas fa-pause-circle"></i></div>
-                        <div class="stat-card-label small text-muted">Beklemede</div>
-                        <div class="stat-card-value">{{ sorumluBeklemedeSayi }}</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <div class="stat-card-icon primary"><i class="fas fa-play-circle"></i></div>
-                        <div class="stat-card-label small text-muted">İşleme Alındı</div>
-                        <div class="stat-card-value">{{ sorumluIslemeAlindiSayi }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <div class="dashboard-section dashboard-durum-section">
-            <div class="dashboard-section-title"><i class="fas fa-chart-bar"></i> Toplam aktif görev adetleri</div>
-            <div class="row g-2">
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <div class="stat-card-icon warning"><i class="fas fa-clock"></i></div>
-                        <div class="stat-card-label small text-muted">İşlem Bekliyor</div>
-                        <div class="stat-card-value">{{ islemBekliyorSayi }}</div>
+                <div class="dash-mini-card card">
+                    <div class="card-header">
+                        <div>
+                            <div class="dash-mini-title"><i class="fas fa-clipboard-check text-primary"></i> Saha Denetim</div>
+                            <div class="dash-mini-sub">Durum özeti ve son denetimler</div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a class="btn btn-sm btn-outline-secondary" href="/SahaDenetim/Yeni"><i class="fas fa-plus me-1"></i> Yeni</a>
+                            <a class="btn btn-sm btn-outline-primary" href="/SahaDenetim"><i class="fas fa-arrow-right me-1"></i> Liste</a>
+                        </div>
+                    </div>
+                    <div class="dash-mini-body">
+                        <div class="dash-kpi-row">
+                            <span class="dash-kpi"><i class="fas fa-clipboard-check"></i> Toplam <strong>{{ sahaDenetim.toplam ?? 0 }}</strong></span>
+                            <span class="dash-kpi"><i class="fas fa-circle-play"></i> Açık <strong>{{ sahaDenetim.acik ?? 0 }}</strong></span>
+                            <span class="dash-kpi"><i class="fas fa-circle-check"></i> Kapalı <strong>{{ sahaDenetim.kapali ?? 0 }}</strong></span>
+                        </div>
+                        <ul class="dash-list" v-if="(sahaDenetim.sonDenetimler || []).length > 0">
+                            <li v-for="d in sahaDenetim.sonDenetimler" :key="d.id">
+                                <div class="dash-item-title">
+                                    <a :href="'/SahaDenetim/Detay/' + d.id">{{ d.ad }}</a>
+                                    <span v-if="d.kapaliMi" class="badge badge-sd-closed">Kapalı</span>
+                                    <span v-else class="badge badge-sd-open">Açık</span>
+                                </div>
+                                <div class="dash-item-meta">
+                                    <span><i class="fas fa-calendar-alt me-1"></i>{{ formatDate(d.kayitTarihi) }}</span>
+                                    <span class="mx-1">•</span>
+                                    <span><i class="fas fa-location-dot me-1"></i>{{ d.lokasyonAdi ? (d.lokasyonAdi + ' - ' + (d.lokasyonId || '')) : '-' }}</span>
+                                    <span class="mx-1">•</span>
+                                    <span><i class="fas fa-list-ol me-1"></i>Adım: {{ d.adimSayisi ?? 0 }}</span>
+                                </div>
+                            </li>
+                        </ul>
+                        <div v-else class="text-muted small">Henüz denetim yok. “Yeni” ile ekleyebilirsiniz.</div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <div class="stat-card-icon secondary"><i class="fas fa-pause-circle"></i></div>
-                        <div class="stat-card-label small text-muted">Beklemede</div>
-                        <div class="stat-card-value">{{ beklemedeSayi }}</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <div class="stat-card-icon primary"><i class="fas fa-play-circle"></i></div>
-                        <div class="stat-card-label small text-muted">İşleme Alındı</div>
-                        <div class="stat-card-value">{{ islemeAlindiSayi }}</div>
-                    </div>
-                </div>
-            </div>
-            <div class="dashboard-cta">
-                <a href="/Gorevler" class="btn btn-primary btn-sm"><i class="fas fa-arrow-right me-1"></i> Görevlere Git</a>
             </div>
         </div>
 
@@ -190,7 +282,7 @@
                                 <th>Durum</th>
                                 <th>İlerleme</th>
                                 <th>Planlanan Bitiş</th>
-                                <th>Sorumlu</th>
+                                <th>Toplam Maliyet</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -205,7 +297,7 @@
                                     </div>
                                 </td>
                                 <td class="small">{{ formatDate(p.planlananBitisTarihi) }}</td>
-                                <td class="small">{{ p.sorumluAdSoyad || '-' }}</td>
+                                <td class="small fw-semibold">{{ formatMoney(p.toplamMaliyet) }}</td>
                                 <td>
                                     <div class="dropdown" data-bs-popper-config='{"strategy":"fixed"}'>
                                         <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"><i class="fas fa-cog me-1"></i> İşlemler</button>
@@ -233,38 +325,14 @@ createApp({
             aktifProjeler: [],
             gorevDurumOzeti: [],
             gorevGrubuSayisi: 0,
-            durumOzet: [],
-            durumOzetSorumlu: [],
-            genelYetkiliMi: false
+            genelYetkiliMi: false,
+            notlar: { toplam: 0, sadeceBen: 0, paylasimli: 0, sonNotlar: [] },
+            sahaDenetim: { toplam: 0, acik: 0, kapali: 0, sonDenetimler: [] }
         };
     },
     computed: {
         toplamGorevAdet() {
             return this.gorevDurumOzeti.reduce((t, s) => t + s.adet, 0);
-        },
-        islemBekliyorSayi() {
-            const kayit = this.durumOzet.find(x => x.durumAd === 'İşlem Bekliyor');
-            return kayit ? kayit.adet : 0;
-        },
-        beklemedeSayi() {
-            const kayit = this.durumOzet.find(x => x.durumAd === 'Beklemede');
-            return kayit ? kayit.adet : 0;
-        },
-        islemeAlindiSayi() {
-            const kayit = this.durumOzet.find(x => x.durumAd === 'İşleme Alındı');
-            return kayit ? kayit.adet : 0;
-        },
-        sorumluIslemBekliyorSayi() {
-            const kayit = this.durumOzetSorumlu.find(x => x.durumAd === 'İşlem Bekliyor');
-            return kayit ? kayit.adet : 0;
-        },
-        sorumluBeklemedeSayi() {
-            const kayit = this.durumOzetSorumlu.find(x => x.durumAd === 'Beklemede');
-            return kayit ? kayit.adet : 0;
-        },
-        sorumluIslemeAlindiSayi() {
-            const kayit = this.durumOzetSorumlu.find(x => x.durumAd === 'İşleme Alındı');
-            return kayit ? kayit.adet : 0;
         }
     },
     mounted() {
@@ -275,13 +343,18 @@ createApp({
                 this.gorevDurumOzeti = d.gorevDurumOzeti || [];
                 this.gorevGrubuSayisi = d.gorevGrubuSayisi ?? 0;
                 this.genelYetkiliMi = !!d.meGenelYetkiliMi;
-            }),
-            axios.get('/api/Gorevler/durum-ozet').then(r => { this.durumOzet = Array.isArray(r.data) ? r.data : []; }),
-            axios.get('/api/Gorevler/durum-ozet?sorumluOldugum=true').then(r => { this.durumOzetSorumlu = Array.isArray(r.data) ? r.data : []; })
+                this.notlar = d.notlar || this.notlar;
+                this.sahaDenetim = d.sahaDenetim || this.sahaDenetim;
+            })
         ]).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
     },
     methods: {
-        formatDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('tr-TR'); }
+        formatDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('tr-TR'); },
+        formatMoney(v) {
+            const n = Number(v || 0);
+            if (isNaN(n)) return '₺0';
+            return n.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' });
+        }
     }
 }).mount('#dashboard-app');
 </script>

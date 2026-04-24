@@ -1,0 +1,240 @@
+@{
+    Layout = "_AdminLayout";
+}
+
+@section Head {
+    <style>
+        #saha-denetim-index .badge-sd-closed {
+            background: #dfffe1;
+            color: #166534;
+            border: 1px solid #bfe9c3;
+        }
+        #saha-denetim-index .badge-sd-open {
+            background: #ffdfdf;
+            color: #991b1b;
+            border: 1px solid #f5bcbc;
+        }
+    </style>
+}
+
+<div id="saha-denetim-index" data-vue-page v-cloak>
+    <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
+        <div class="w-100 text-center">
+            <div class="small text-muted mb-2">Yükleniyor...</div>
+            <div class="progress" style="max-width:260px;margin:0 auto;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="v-cloak-hidden">
+        <div class="mb-3" id="sdFiltrePanel">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="fw-medium"><i class="fas fa-filter me-1"></i> Filtreleme</div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted mb-1">Durum</label>
+                            <select v-model="filtre.durum" class="form-select form-select-sm">
+                                <option value="all">Tümü</option>
+                                <option value="open">Açık</option>
+                                <option value="closed">Kapalı</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted mb-1">Lokasyon</label>
+                            <select v-model="filtre.lokasyonId" class="form-select form-select-sm">
+                                <option value="">Tümü</option>
+                                <option v-for="l in lokasyonlar" :key="l.lokasyonMagazaKodu" :value="l.lokasyonMagazaKodu">
+                                    {{ l.lokasyonAdi }} - {{ l.lokasyonMagazaKodu }}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted mb-1">Başlangıç</label>
+                            <input v-model="filtre.baslangic" type="date" class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted mb-1">Bitiş</label>
+                            <input v-model="filtre.bitis" type="date" class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-12 d-flex justify-content-end gap-2 mt-2">
+                            <button class="btn btn-sm btn-outline-danger" type="button" @@click="filtreTemizle">
+                                <i class="fas fa-rotate-left me-1"></i> Temizle
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <div class="small text-muted">Liste</div>
+                <div class="d-flex gap-2 align-items-center flex-wrap flex-md-nowrap">
+                    <input v-model="q" class="form-control form-control-sm" style="min-width:220px;max-width:320px;flex:1 1 320px" placeholder="Denetim ara..." />
+                    <a v-if="!loading && denetimler.length > 0" class="btn btn-primary btn-sm text-nowrap" style="white-space:nowrap" href="/SahaDenetim/Yeni">
+                        <i class="fas fa-plus me-1"></i> Yeni Denetim
+                    </a>
+                </div>
+            </div>
+            <div class="list-group list-group-flush">
+                <a v-for="d in sayfadaki" :key="d.id" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                   :href="'/SahaDenetim/Detay/' + d.id">
+                    <div class="w-100 d-flex justify-content-between align-items-start gap-3">
+                        <div>
+                            <div class="fw-semibold d-flex align-items-center gap-2 flex-wrap">
+                                <i class="fas fa-clipboard-check text-primary"></i>
+                                <span>{{ d.ad }}</span>
+                                <span v-if="d.kapaliMi" class="badge badge-sd-closed">Kapalı</span>
+                                <span v-else class="badge badge-sd-open">Açık</span>
+                            </div>
+                            <div class="small text-muted mt-1">
+                                <i class="fas fa-user me-1"></i> {{ d.olusturanAdSoyad || '-' }}
+                                <span class="mx-2">•</span>
+                                <i class="fas fa-calendar-alt me-1"></i> {{ formatDate(d.kayitTarihi) }}
+                                <span class="mx-2">•</span>
+                                <i class="fas fa-location-dot me-1"></i> {{ d.lokasyonAdi ? (d.lokasyonAdi + ' - ' + (d.lokasyonId || '')) : '-' }}
+                                <span class="mx-2">•</span>
+                                <i class="fas fa-list-ol me-1"></i> Adım Sayısı: {{ d.adimSayisi ?? 0 }}
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted mt-1"></i>
+                    </div>
+                </a>
+                <div v-if="!loading && denetimler.length === 0" class="list-group-item">
+                    <div class="text-center py-2">
+                        <a class="btn btn-primary btn-sm text-nowrap" style="white-space:nowrap" href="/SahaDenetim/Yeni">
+                            <i class="fas fa-plus me-1"></i> Yeni Denetim
+                        </a>
+                    </div>
+                </div>
+                <div v-if="!loading && denetimler.length === 0" class="list-group-item text-muted">
+                    Henüz denetim yok. “Yeni Denetim” ile ekleyin.
+                </div>
+                <div v-else-if="!loading && filtreli.length === 0" class="list-group-item text-muted">
+                    Aramaya göre denetim bulunamadı.
+                </div>
+            </div>
+
+            <div v-if="!loading && filtreli.length > 0" class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="small text-muted">
+                    Toplam: <span class="fw-semibold">{{ filtreli.length }}</span>
+                    <span class="mx-2">•</span>
+                    Sayfa: <span class="fw-semibold">{{ page }}</span>/<span class="fw-semibold">{{ totalPages }}</span>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" @@click="goPrev" :disabled="page <= 1">
+                        <i class="fas fa-chevron-left me-1"></i> Önceki
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" @@click="goNext" :disabled="page >= totalPages">
+                        Sonraki <i class="fas fa-chevron-right ms-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+const { createApp } = Vue;
+createApp({
+    data() {
+        return {
+            loading: true,
+            q: '',
+            denetimler: [],
+            lokasyonlar: [],
+            filtre: { durum: 'all', lokasyonId: '', baslangic: '', bitis: '' },
+            page: 1,
+            pageSize: 75
+        };
+    },
+    computed: {
+        filtreli() {
+            const q = (this.q || '').trim().toLowerCase();
+            const durum = this.filtre?.durum || 'all';
+            const lokasyonIdStr = (this.filtre?.lokasyonId || '').toString().trim();
+            const bas = this.filtre?.baslangic || '';
+            const bit = this.filtre?.bitis || '';
+
+            const basD = bas ? new Date(bas + 'T00:00:00') : null;
+            const bitD = bit ? new Date(bit + 'T23:59:59') : null;
+            const lokasyonId = lokasyonIdStr ? Number(lokasyonIdStr) : null;
+
+            return (this.denetimler || []).filter(x => {
+                // durum filtresi
+                if (durum === 'open' && !!x.kapaliMi) return false;
+                if (durum === 'closed' && !x.kapaliMi) return false;
+
+                // lokasyon filtresi
+                if (lokasyonId !== null) {
+                    const xid = (x.lokasyonId == null) ? null : Number(x.lokasyonId);
+                    if (xid !== lokasyonId) return false;
+                }
+
+                // tarih filtresi (KayitTarihi)
+                if (basD || bitD) {
+                    const d = x.kayitTarihi ? new Date(x.kayitTarihi) : null;
+                    if (!d || isNaN(d.getTime())) return false;
+                    if (basD && d < basD) return false;
+                    if (bitD && d > bitD) return false;
+                }
+
+                // arama filtresi
+                if (q) return (x.ad || '').toLowerCase().includes(q);
+                return true;
+            });
+        },
+        totalPages() {
+            const n = (this.filtreli || []).length;
+            const size = Number(this.pageSize || 75);
+            const pages = Math.max(1, Math.ceil(n / (size > 0 ? size : 75)));
+            return pages;
+        },
+        sayfadaki() {
+            const size = Number(this.pageSize || 75);
+            const p = Math.min(Math.max(1, Number(this.page || 1)), this.totalPages);
+            const start = (p - 1) * size;
+            const end = start + size;
+            return (this.filtreli || []).slice(start, end);
+        }
+    },
+    watch: {
+        q() { this.page = 1; },
+        filtre: {
+            deep: true,
+            handler() { this.page = 1; }
+        }
+    },
+    mounted() {
+        Promise.all([
+            axios.get('/api/saha-denetim').then(r => { this.denetimler = r.data || []; }),
+            axios.get('/api/saha-denetim/lokasyonlar').then(r => { this.lokasyonlar = r.data || []; })
+        ]).finally(() => {
+            this.loading = false;
+            if (window.setPageLoading) window.setPageLoading(false);
+        });
+    },
+    methods: {
+        filtreTemizle() {
+            this.filtre = { durum: 'all', lokasyonId: '', baslangic: '', bitis: '' };
+        },
+        goPrev() {
+            if (this.page > 1) this.page--;
+        },
+        goNext() {
+            if (this.page < this.totalPages) this.page++;
+        },
+        formatDate(v) {
+            if (!v) return '-';
+            try { const d = new Date(v); return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('tr-TR'); } catch { return '-'; }
+        }
+    }
+}).mount('#saha-denetim-index');
+</script>
+}
+

@@ -1,0 +1,869 @@
+@{
+    Layout = "_AdminLayout";
+    var denetimId = ViewData["DenetimId"] as int? ?? 0;
+}
+
+@section Head {
+    <style>
+        #sd-detay .adim-accordion .accordion-item { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; }
+        #sd-detay .adim-accordion .accordion-item.adim-yapildi { background: #dfffe1; border-color: #bfe9c3; }
+        #sd-detay .adim-accordion .accordion-item.adim-yapildi .accordion-button { background: #dfffe1; }
+        #sd-detay .adim-accordion .accordion-item.adim-yapildi .accordion-button:not(.collapsed) { background: #dfffe1; }
+        #sd-detay .adim-accordion .accordion-header { margin: 0; }
+        #sd-detay .adim-accordion .accordion-button { padding: 14px; }
+        #sd-detay .adim-accordion .accordion-button:not(.collapsed) { background: #fff; box-shadow: none; }
+        #sd-detay .adim-accordion .accordion-button:focus { box-shadow: none; }
+        #sd-detay .adim-accordion .accordion-body { padding: 14px; padding-top: 0; }
+        #sd-detay .adim-accordion .accordion-button::after { margin-left: 12px; }
+        #sd-detay .kategori-baslik { font-weight: 700; color: #0f172a; }
+        #sd-detay .adim-baslik { font-weight: 600; }
+        #sd-detay .adim-aciklama { color: #64748b; }
+        #sd-detay .star { cursor: pointer; color: #cbd5e1; }
+        #sd-detay .star.active { color: #f59e0b; }
+        #sd-detay textarea { resize: vertical; }
+
+        /* Modern detay görünümü */
+        #sd-detay .step-meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        #sd-detay .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            border: 1px solid #e2e8f0;
+            color: #0f172a;
+            background: #fff;
+        }
+        #sd-detay .chip-muted { color: #64748b; background: #f8fafc; }
+        #sd-detay .chip-tip { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+        #sd-detay .section {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px dashed #e2e8f0;
+        }
+        #sd-detay .section:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+        #sd-detay .section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        #sd-detay .section-title .left {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        #sd-detay .section-box {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+        }
+        #sd-detay .inline-actions .btn { padding: 0.15rem 0.45rem; }
+        #sd-detay .hint {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+        #sd-detay .rating-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        #sd-detay .rating-value {
+            font-size: 0.85rem;
+            color: #64748b;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            padding: 4px 10px;
+        }
+        #sd-detay .kv {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        #sd-detay .kv label { margin: 0; font-size: 0.8rem; color: #64748b; }
+
+        /* Yapıldı checkbox vurgusu */
+        #sd-detay .done-check-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            background: #f8fafc;
+        }
+        #sd-detay .done-check-wrap .form-check-input {
+            width: 1.3rem;
+            height: 1.3rem;
+            margin-top: 0;
+            cursor: pointer;
+        }
+        #sd-detay .done-check-wrap .form-check-label {
+            font-weight: 700;
+            color: #0f172a;
+            cursor: pointer;
+        }
+
+        /* Fotoğraflar */
+        #sd-detay .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+        }
+        #sd-detay .photo-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #fff;
+        }
+        #sd-detay .photo-item img {
+            width: 100%;
+            height: 110px;
+            object-fit: cover;
+            display: block;
+        }
+        #sd-detay .photo-item .photo-meta {
+            padding: 8px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        #sd-detay .photo-item .photo-name {
+            font-size: 0.78rem;
+            color: #64748b;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    </style>
+}
+
+<div id="sd-detay" data-vue-page data-denetim-id="@denetimId" v-cloak>
+    <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
+        <div class="w-100 text-center">
+            <div class="small text-muted mb-2">Yükleniyor...</div>
+            <div class="progress" style="max-width:260px;margin:0 auto;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="v-cloak-hidden">
+        <div class="card p-4 mb-3">
+            <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                <div>
+                    <h4 class="mb-1">{{ denetim.ad || 'Denetim' }}</h4>
+                    <div class="small text-muted">
+                        <i class="fas fa-user me-1"></i> {{ denetim.olusturanAdSoyad || '-' }}
+                        <span class="mx-2">•</span>
+                        <i class="fas fa-calendar-alt me-1"></i> {{ formatDate(denetim.kayitTarihi) }}
+                        <span class="mx-2">•</span>
+                        <i class="fas fa-location-dot me-1"></i> {{ (denetim.lokasyonAdi ? (denetim.lokasyonAdi + ' - ' + (denetim.lokasyonId || '')) : '-') }}
+                    </div>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <a href="/SahaDenetim" class="btn btn-outline-secondary btn-sm rounded-pill"><i class="fas fa-arrow-left me-1"></i> Denetimler</a>
+
+                    <button class="btn btn-outline-secondary btn-sm rounded-pill" type="button" @@click="logModalAc">
+                        <i class="fas fa-clipboard-list me-1"></i> Log
+                    </button>
+
+                    <button class="btn btn-outline-warning btn-sm rounded-pill" @@click="toggleKapat" :disabled="saving">
+                        <i class="fas" :class="denetim.kapaliMi ? 'fa-lock-open' : 'fa-lock'"></i>
+                        <span class="ms-1">{{ denetim.kapaliMi ? 'Denetimi Aç' : 'Denetimi Kapat' }}</span>
+                    </button>
+
+                    <div class="dropdown" v-if="!denetim.kapaliMi">
+                        <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-gear me-1"></i> Ayarlar
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" @@click.prevent="adimEkleAc()"><i class="fas fa-plus me-2"></i> Adım Ekle</a></li>
+                            <li><a class="dropdown-item" href="#" @@click.prevent="adimListeAc()"><i class="fas fa-pen-to-square me-2"></i> Adım Güncelle-Sil</a></li>
+                            <li><a class="dropdown-item" href="#" @@click.prevent="denetimGuncelleAc()"><i class="fas fa-pen me-2"></i> Denetimi Güncelle</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" @@click.prevent="denetimSil()"><i class="fas fa-trash me-2"></i> Denetimi Sil</a></li>
+                        </ul>
+                    </div>
+
+                    <button class="btn btn-outline-success btn-sm rounded-pill" type="button" @@click="klonla" :disabled="saving">
+                        <i class="fas fa-clone me-1"></i> Klonla
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="sdAdimAccordionRoot">
+        <div v-for="grp in gruplanmis" :key="grp.kategoriKey" class="mb-3">
+            <div class="mb-2 kategori-baslik">
+                <i class="fas fa-folder-tree me-2 text-muted"></i>{{ grp.kategoriAd }}
+            </div>
+            <div class="d-flex flex-column gap-2">
+                <div v-for="a in grp.adimlar" :key="a.id" class="adim-accordion accordion">
+                    <div class="accordion-item" :class="{ 'adim-yapildi': !!a.yapildiMi }">
+                        <h2 class="accordion-header" :id="'sd-adim-h-' + a.id">
+                            <button class="accordion-button collapsed" type="button"
+                                    data-bs-toggle="collapse"
+                                    :data-bs-target="'#sd-adim-c-' + a.id"
+                                    aria-expanded="false"
+                                    :aria-controls="'sd-adim-c-' + a.id">
+                                <div class="w-100 d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                                    <div>
+                                        <div class="adim-baslik">
+                                            {{ a.ad }}
+                                            <span v-if="denetim.kapaliMi" class="text-muted">
+                                                ({{ a.yapildiMi ? 'Yapıldı' : 'Yapılmadı' }})
+                                            </span>
+                                        </div>
+                                        <div v-if="a.aciklama" class="small adim-aciklama mt-1">{{ a.aciklama }}</div>
+
+                                        <div class="step-meta-row">
+                                            <span v-if="hasTip(a, 1)" class="chip chip-tip"><i class="fas fa-star"></i> Puanlama</span>
+                                            <span v-if="hasTip(a, 2)" class="chip chip-tip"><i class="fas fa-users"></i> İlgili Kişiler</span>
+                                            <span v-if="hasTip(a, 4)" class="chip chip-tip"><i class="fas fa-box"></i> İlgili Ürünler</span>
+                                            <span class="chip chip-muted"><i class="fas fa-tag"></i> {{ a.kategoriAd || 'Kategorisiz' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </button>
+                        </h2>
+                        <div :id="'sd-adim-c-' + a.id" class="accordion-collapse collapse" :aria-labelledby="'sd-adim-h-' + a.id" data-bs-parent="#sdAdimAccordionRoot">
+                            <div class="accordion-body">
+                                <div class="d-flex justify-content-start mb-2">
+                                    <div v-if="!denetim.kapaliMi" class="form-check done-check-wrap" @@click.stop>
+                                        <input class="form-check-input" type="checkbox" v-model="a.yapildiMi" @@change="adimDoldurKaydet(a)" :id="'chk'+a.id">
+                                        <label class="form-check-label" :for="'chk'+a.id">Yapıldı</label>
+                                    </div>
+                                </div>
+
+                                <!-- Puanlama -->
+                                <div v-if="hasTip(a, 1)" class="section">
+                                    <div class="section-title">
+                                        <div class="left"><i class="fas fa-star text-warning"></i> Puanlama</div>
+                                        <div class="hint">1-10 arası</div>
+                                    </div>
+                                    <div class="section-box">
+                                        <div class="rating-wrap">
+                                            <div>
+                                                <i v-for="i in 10" :key="i" class="fas fa-star star me-1" :class="{ active: (a.puan || 0) >= i }" @@click="setPuan(a, i)"></i>
+                                            </div>
+                                            <div class="rating-value">{{ a.puan || 0 }}/10</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- İlgili Kişiler -->
+                                <div v-if="hasTip(a, 2)" class="section">
+                                    <div class="section-title">
+                                        <div class="left"><i class="fas fa-users text-primary"></i> İlgili Kişiler</div>
+                                        <div class="inline-actions">
+                                            <button v-if="!denetim.kapaliMi" class="btn btn-sm btn-outline-secondary" @@click="kisiModalAc(a)"><i class="fas fa-user-plus me-1"></i> Ekle</button>
+                                        </div>
+                                    </div>
+                                    <div class="section-box">
+                                        <div v-if="(a.ilgiliKisiler||[]).length===0" class="text-muted fst-italic small">Kişi yok</div>
+                                        <div v-else class="small d-flex flex-column gap-2">
+                                            <div v-for="(k,idx) in a.ilgiliKisiler" :key="k.id || idx" class="d-flex justify-content-between align-items-start gap-2">
+                                                <div class="w-100">
+                                                    <div class="fw-semibold">{{ k.adSoyad }}</div>
+                                                    <div v-if="k.aciklama" class="text-muted">{{ k.aciklama }}</div>
+                                                </div>
+                                                <div class="d-flex gap-1">
+                                                    <button v-if="!denetim.kapaliMi" class="btn btn-sm btn-outline-secondary" title="Düzenle" @@click="kisiModalAc(a, k, idx)"><i class="fas fa-pen"></i></button>
+                                                    <button v-if="!denetim.kapaliMi" class="btn btn-sm btn-outline-danger" title="Sil" @@click="kisiSil(a, idx)"><i class="fas fa-trash"></i></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- İlgili Ürünler -->
+                                <div v-if="hasTip(a, 4)" class="section">
+                                    <div class="section-title">
+                                        <div class="left"><i class="fas fa-box text-success"></i> İlgili Ürünler</div>
+                                        <div class="inline-actions">
+                                            <button v-if="!denetim.kapaliMi" class="btn btn-sm btn-outline-secondary" @@click="urunModalAc(a)"><i class="fas fa-plus me-1"></i> Ekle</button>
+                                        </div>
+                                    </div>
+                                    <div class="section-box">
+                                        <div v-if="(a.ilgiliUrunler||[]).length===0" class="text-muted fst-italic small">Ürün yok</div>
+                                        <div v-else class="small d-flex flex-column gap-2">
+                                            <div v-for="(u,idx) in a.ilgiliUrunler" :key="u.id || idx" class="d-flex justify-content-between align-items-start gap-2">
+                                                <div class="w-100">
+                                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                        <span class="fw-semibold">{{ u.stokKodu }}</span>
+                                                        <span class="chip chip-muted"><i class="fas fa-hashtag"></i> {{ u.adet }}</span>
+                                                    </div>
+                                                    <div v-if="u.aciklama" class="text-muted">{{ u.aciklama }}</div>
+                                                </div>
+                                                <div class="d-flex gap-1">
+                                                    <button v-if="!denetim.kapaliMi" class="btn btn-sm btn-outline-secondary" title="Düzenle" @@click="urunModalAc(a, u, idx)"><i class="fas fa-pen"></i></button>
+                                                    <button v-if="!denetim.kapaliMi" class="btn btn-sm btn-outline-danger" title="Sil" @@click="urunSil(a, idx)"><i class="fas fa-trash"></i></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="section">
+                                    <div class="section-title">
+                                        <div class="left"><i class="fas fa-images text-info"></i> Fotoğraflar</div>
+                                        <div class="inline-actions">
+                                            <button v-if="!denetim.kapaliMi" class="btn btn-sm btn-outline-secondary" @@click="fotoSec(a)">
+                                                <i class="fas fa-upload me-1"></i> Yükle
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="section-box">
+                                        <div v-if="(a.fotograflar||[]).length===0" class="text-muted fst-italic small">Fotoğraf yok</div>
+                                        <div v-else class="photo-grid">
+                                            <div v-for="f in a.fotograflar" :key="f.id" class="photo-item">
+                                                <a :href="f.url" target="_blank" rel="noopener">
+                                                    <img :src="f.url" />
+                                                </a>
+                                                <div class="photo-meta">
+                                                    <div class="photo-name" :title="f.dosyaAdi || f.url">{{ f.dosyaAdi || 'Fotoğraf' }}</div>
+                                                    <button v-if="!denetim.kapaliMi" class="btn btn-sm btn-outline-danger" title="Sil" @@click="fotoSil(a, f)">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="section">
+                                    <div class="section-title">
+                                        <div class="left"><i class="fas fa-comment-dots text-muted"></i> Notlar</div>
+                                    </div>
+                                    <div class="section-box">
+                                        <div class="row g-2">
+                                            <div class="col-md-6 kv">
+                                                <label>Personel Yorum</label>
+                                                <div v-if="denetim.kapaliMi" class="form-control form-control-sm bg-light">
+                                                    {{ (a.personelYorum && a.personelYorum.trim()) ? a.personelYorum : '-' }}
+                                                </div>
+                                                <textarea v-else v-model="a.personelYorum" class="form-control form-control-sm" rows="3" @@change="adimDoldurKaydet(a)"></textarea>
+                                            </div>
+                                            <div class="col-md-6 kv">
+                                                <label>Not</label>
+                                                <div v-if="denetim.kapaliMi" class="form-control form-control-sm bg-light">
+                                                    {{ (a.not && a.not.trim()) ? a.not : '-' }}
+                                                </div>
+                                                <textarea v-else v-model="a.not" class="form-control form-control-sm" rows="3" @@change="adimDoldurKaydet(a)"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- Adım Ekle Modal -->
+        <div class="modal fade" id="sdAdimModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">{{ adimForm.id ? 'Adım Güncelle' : 'Adım Ekle' }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Adım Adı</label>
+                                <input v-model="adimForm.ad" class="form-control" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Açıklama</label>
+                                <textarea v-model="adimForm.aciklama" class="form-control" rows="2"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Saha Denetim Kategorisi</label>
+                                <select v-model.number="adimForm.kategoriId" class="form-select">
+                                    <option :value="null">—</option>
+                                    <option v-for="k in kategoriler" :key="k.id" :value="k.id">{{ k.ad }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Adım Tipleri</label>
+                                <div class="d-flex flex-column gap-2">
+                                    <label class="form-check">
+                                        <input class="form-check-input" type="checkbox" v-model="adimTipSecim.puanlama">
+                                        <span class="form-check-label">Puanlama</span>
+                                    </label>
+                                    <label class="form-check">
+                                        <input class="form-check-input" type="checkbox" v-model="adimTipSecim.ilgiliKisiler">
+                                        <span class="form-check-label">İlgili Kişiler</span>
+                                    </label>
+                                    <label class="form-check">
+                                        <input class="form-check-input" type="checkbox" v-model="adimTipSecim.ilgiliUrunler">
+                                        <span class="form-check-label">İlgili Ürünler</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> İptal</button>
+                        <button type="button" class="btn btn-primary" @@click="adimKaydet" :disabled="saving"><i class="fas fa-save me-1"></i> Kaydet</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Adım Güncelle/Sil Modal (liste) -->
+        <div class="modal fade" id="sdAdimListeModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Adım Güncelle / Sil</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div v-if="denetim.adimlar.length===0" class="text-muted">Adım yok.</div>
+                        <div v-else class="list-group">
+                            <div v-for="a in denetim.adimlar" :key="a.id" class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-semibold">{{ a.ad }}</div>
+                                    <div class="small text-muted">{{ a.kategoriAd || 'Kategorisiz' }}</div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-secondary" @@click="adimDuzenleAc(a)"><i class="fas fa-edit me-1"></i> Düzenle</button>
+                                    <button class="btn btn-sm btn-outline-danger" @@click="adimSil(a)"><i class="fas fa-trash me-1"></i> Sil</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- İlgili Kişi Modal -->
+        <div class="modal fade" id="sdKisiModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">{{ kisiModal.idx === null ? 'İlgili Kişi Ekle' : 'İlgili Kişi Düzenle' }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Kişi Adı-Soyadı</label>
+                            <input v-model="kisiModal.adSoyad" class="form-control" />
+                        </div>
+                        <div>
+                            <label class="form-label">Açıklama</label>
+                            <textarea v-model="kisiModal.aciklama" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> İptal</button>
+                        <button type="button" class="btn btn-primary" @@click="kisiModalKaydet"><i class="fas fa-save me-1"></i> Kaydet</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- İlgili Ürün Modal -->
+        <div class="modal fade" id="sdUrunModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">{{ urunModal.idx === null ? 'İlgili Ürün Ekle' : 'İlgili Ürün Düzenle' }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Stok Kodu</label>
+                            <input v-model="urunModal.stokKodu" class="form-control" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Adet</label>
+                            <input v-model.number="urunModal.adet" type="number" step="0.01" class="form-control" />
+                        </div>
+                        <div>
+                            <label class="form-label">Açıklama</label>
+                            <textarea v-model="urunModal.aciklama" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> İptal</button>
+                        <button type="button" class="btn btn-primary" @@click="urunModalKaydet"><i class="fas fa-save me-1"></i> Kaydet</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Denetim Güncelle Modal -->
+        <div class="modal fade" id="sdDenetimGuncelleModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Denetimi Güncelle</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Denetim Adı</label>
+                            <input v-model="denetimGuncelleForm.ad" class="form-control" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Lokasyon</label>
+                            <select v-model="denetimGuncelleForm.lokasyonMagazaKodu" class="form-select">
+                                <option value="">Seçiniz...</option>
+                                <option v-for="l in lokasyonlar" :key="l.lokasyonMagazaKodu" :value="l.lokasyonMagazaKodu">
+                                    {{ l.lokasyonAdi }} - {{ l.lokasyonMagazaKodu }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> İptal</button>
+                        <button type="button" class="btn btn-primary" @@click="denetimGuncelleKaydet" :disabled="saving"><i class="fas fa-save me-1"></i> Kaydet</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Modal -->
+        <div class="modal fade" id="sdLogModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-clipboard-list me-2"></i> Denetim Log</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="small text-muted mb-2">Denetim hareketleri</div>
+                        <div class="mb-2">
+                            <div class="fw-semibold">Oluşturan</div>
+                            <div>{{ denetim.olusturanAdSoyad || '-' }} <span class="text-muted">({{ formatDateTime(denetim.kayitTarihi) }})</span></div>
+                        </div>
+                        <div class="mb-2">
+                            <div class="fw-semibold">Kapatan</div>
+                            <div v-if="denetim.kapatmaTarihi">{{ denetim.kapatanAdSoyad || '-' }} <span class="text-muted">({{ formatDateTime(denetim.kapatmaTarihi) }})</span></div>
+                            <div v-else class="text-muted">-</div>
+                        </div>
+                        <div>
+                            <div class="fw-semibold">Geri Açan</div>
+                            <div v-if="denetim.geriAcmaTarihi">{{ denetim.geriAcanAdSoyad || '-' }} <span class="text-muted">({{ formatDateTime(denetim.geriAcmaTarihi) }})</span></div>
+                            <div v-else class="text-muted">-</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Kapat</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Klonla Modal -->
+        <div class="modal fade" id="sdKlonlaModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-clone me-2"></i> Denetimi Klonla</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Yeni Denetim Adı</label>
+                            <input v-model="klonlaForm.ad" class="form-control" placeholder="Yeni denetim adı" />
+                        </div>
+                        <div class="small text-muted">Mevcut denetimin adımları yeni denetime kopyalanacaktır.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> İptal</button>
+                        <button type="button" class="btn btn-success" @@click="klonlaOnayla" :disabled="saving">
+                            <i class="fas fa-check me-1"></i> Klonla
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+const { createApp } = Vue;
+const denetimId = Number(document.getElementById('sd-detay').dataset.denetimId || 0);
+
+createApp({
+    data() {
+        return {
+            loading: true,
+            saving: false,
+            denetim: { id: denetimId, ad: '', kayitTarihi: null, olusturanAdSoyad: '', canDelete: false, kapaliMi: false, kapatanAdSoyad: '', kapatmaTarihi: null, geriAcanAdSoyad: '', geriAcmaTarihi: null, lokasyonId: null, lokasyonAdi: '', adimlar: [] },
+            kategoriler: [],
+            lokasyonlar: [],
+            adimForm: { id: null, ad: '', aciklama: '', kategoriId: null, tipler: 0, sira: 1 },
+            adimTipSecim: { puanlama: false, ilgiliKisiler: false, ilgiliUrunler: false },
+            kisiModal: { adimId: null, idx: null, adSoyad: '', aciklama: '' },
+            urunModal: { adimId: null, idx: null, stokKodu: '', adet: 0, aciklama: '' },
+            denetimGuncelleForm: { ad: '', lokasyonMagazaKodu: '' },
+            klonlaForm: { ad: '' }
+        };
+    },
+    computed: {
+        gruplanmis() {
+            const map = new Map();
+            (this.denetim.adimlar || []).forEach(a => {
+                const key = a.kategoriId ? String(a.kategoriId) : 'none';
+                const kategoriAd = a.kategoriAd || 'Kategorisiz';
+                if (!map.has(key)) map.set(key, { kategoriKey: key, kategoriAd, adimlar: [] });
+                map.get(key).adimlar.push(a);
+            });
+            return Array.from(map.values());
+        }
+    },
+    mounted() {
+        Promise.all([
+            axios.get('/api/saha-denetim/' + denetimId).then(r => { this.denetim = r.data; this.denetim.adimlar = this.denetim.adimlar || []; }),
+            axios.get('/api/Parametre/saha-denetim-kategorileri').then(r => { this.kategoriler = (r.data || []).slice().sort((a,b) => (a.ad||'').localeCompare(b.ad||'', 'tr')); }),
+            axios.get('/api/saha-denetim/lokasyonlar').then(r => { this.lokasyonlar = r.data || []; })
+        ])
+        .finally(() => { this.loading = false; if (window.setPageLoading) window.setPageLoading(false); });
+    },
+    methods: {
+        formatDate(v) { if (!v) return '-'; try { const d = new Date(v); return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('tr-TR'); } catch { return '-'; } },
+        formatDateTime(v) { if (!v) return '-'; try { const d = new Date(v); return isNaN(d.getTime()) ? '-' : d.toLocaleString('tr-TR'); } catch { return '-'; } },
+        hasTip(a, flag) { return ((Number(a.tipler || 0)) & flag) === flag; },
+        calcTipler() {
+            let t = 0;
+            if (this.adimTipSecim.puanlama) t |= 1;
+            if (this.adimTipSecim.ilgiliKisiler) t |= 2;
+            if (this.adimTipSecim.ilgiliUrunler) t |= 4;
+            return t;
+        },
+        tipSecimFrom(tipler) {
+            const t = Number(tipler || 0);
+            this.adimTipSecim = { puanlama: (t & 1) === 1, ilgiliKisiler: (t & 2) === 2, ilgiliUrunler: (t & 4) === 4 };
+        },
+
+        adimEkleAc() {
+            if (this.denetim.kapaliMi) return;
+            this.adimForm = { id: null, ad: '', aciklama: '', kategoriId: null, tipler: 0, sira: 0 };
+            this.adimTipSecim = { puanlama: false, ilgiliKisiler: false, ilgiliUrunler: false };
+            new bootstrap.Modal(document.getElementById('sdAdimModal')).show();
+        },
+        adimDuzenleAc(a) {
+            if (this.denetim.kapaliMi) return;
+            this.adimForm = { id: a.id, ad: a.ad, aciklama: a.aciklama || '', kategoriId: a.kategoriId || null, tipler: Number(a.tipler || 0), sira: a.sira || 1 };
+            this.tipSecimFrom(this.adimForm.tipler);
+            bootstrap.Modal.getInstance(document.getElementById('sdAdimListeModal'))?.hide();
+            new bootstrap.Modal(document.getElementById('sdAdimModal')).show();
+        },
+        adimKaydet() {
+            if (!this.adimForm.ad || !this.adimForm.ad.trim()) { alert('Adım adı zorunludur.'); return; }
+            this.saving = true;
+            const payload = {
+                ad: this.adimForm.ad.trim(),
+                aciklama: this.adimForm.aciklama || null,
+                kategoriId: this.adimForm.kategoriId,
+                tipler: this.calcTipler(),
+                sira: this.adimForm.sira || 1
+            };
+            const p = this.adimForm.id
+                ? axios.put('/api/saha-denetim/adim/' + this.adimForm.id, payload)
+                : axios.post('/api/saha-denetim/' + denetimId + '/adim', payload);
+            p.then(() => axios.get('/api/saha-denetim/' + denetimId))
+                .then(r => { this.denetim = r.data; this.denetim.adimlar = this.denetim.adimlar || []; bootstrap.Modal.getInstance(document.getElementById('sdAdimModal')).hide(); })
+                .catch(e => alert(e.response?.data?.message || 'Kaydedilemedi.'))
+                .finally(() => { this.saving = false; });
+        },
+        adimListeAc() { new bootstrap.Modal(document.getElementById('sdAdimListeModal')).show(); },
+        adimSil(a) {
+            if (this.denetim.kapaliMi) return;
+            if (!confirm('Silmek istediğinize emin misiniz?')) return;
+            this.saving = true;
+            axios.delete('/api/saha-denetim/adim/' + a.id)
+                .then(() => axios.get('/api/saha-denetim/' + denetimId))
+                .then(r => { this.denetim = r.data; this.denetim.adimlar = this.denetim.adimlar || []; })
+                .catch(e => alert(e.response?.data?.message || 'Silinemedi.'))
+                .finally(() => { this.saving = false; });
+        },
+        denetimSil() {
+            if (this.denetim.kapaliMi) return;
+            if (!this.denetim.canDelete) { alert('Bu denetimi sadece oluşturan kişi silebilir.'); return; }
+            if (!confirm('Denetimi silmek istediğinize emin misiniz?')) return;
+            this.saving = true;
+            axios.delete('/api/saha-denetim/' + denetimId)
+                .then(() => { window.location.href = '/SahaDenetim'; })
+                .catch(e => alert(e.response?.data?.message || 'Silinemedi.'))
+                .finally(() => { this.saving = false; });
+        },
+        denetimGuncelleAc() {
+            if (this.denetim.kapaliMi) return;
+            this.denetimGuncelleForm = { ad: this.denetim.ad || '', lokasyonMagazaKodu: (this.denetim.lokasyonId != null ? String(this.denetim.lokasyonId) : '') };
+            new bootstrap.Modal(document.getElementById('sdDenetimGuncelleModal')).show();
+        },
+        denetimGuncelleKaydet() {
+            if (this.denetim.kapaliMi) return;
+            if (!this.denetimGuncelleForm.ad || !this.denetimGuncelleForm.ad.trim()) { alert('Denetim adı zorunludur.'); return; }
+            if (!confirm('Güncellemek istediğinize emin misiniz?')) return;
+            this.saving = true;
+            axios.put('/api/saha-denetim/' + denetimId, { ad: this.denetimGuncelleForm.ad.trim(), lokasyonMagazaKodu: (this.denetimGuncelleForm.lokasyonMagazaKodu || null), kayitTarihi: null })
+                .then(() => axios.get('/api/saha-denetim/' + denetimId))
+                .then(r => { this.denetim = r.data; this.denetim.adimlar = this.denetim.adimlar || []; bootstrap.Modal.getInstance(document.getElementById('sdDenetimGuncelleModal'))?.hide(); })
+                .catch(e => alert(e.response?.data?.message || 'Güncellenemedi.'))
+                .finally(() => { this.saving = false; });
+        },
+        logModalAc() {
+            new bootstrap.Modal(document.getElementById('sdLogModal')).show();
+        },
+        toggleKapat() {
+            const hedefKapali = !this.denetim.kapaliMi;
+            const msg = hedefKapali ? 'Denetimi kapatmak istediğinize emin misiniz?' : 'Denetimi geri açmak istediğinize emin misiniz?';
+            if (!confirm(msg)) return;
+            this.saving = true;
+            const p = hedefKapali ? axios.post('/api/saha-denetim/' + denetimId + '/kapat') : axios.post('/api/saha-denetim/' + denetimId + '/geri-ac');
+            p.then(() => axios.get('/api/saha-denetim/' + denetimId))
+                .then(r => { this.denetim = r.data; this.denetim.adimlar = this.denetim.adimlar || []; })
+                .catch(e => alert(e.response?.data?.message || 'İşlem başarısız.'))
+                .finally(() => { this.saving = false; });
+        },
+        klonla() {
+            this.klonlaForm = { ad: (this.denetim.ad ? (this.denetim.ad + ' (Kopya)') : 'Kopya Denetim') };
+            new bootstrap.Modal(document.getElementById('sdKlonlaModal')).show();
+        },
+        klonlaOnayla() {
+            const ad = (this.klonlaForm.ad || '').trim();
+            if (!ad) { alert('Yeni denetim adı zorunludur.'); return; }
+            if (!confirm('Bu denetimin adımlarını yeni denetime kopyalamak istediğinize emin misiniz?')) return;
+            this.saving = true;
+            axios.post('/api/saha-denetim/' + denetimId + '/klonla', { ad })
+                .then(r => {
+                    bootstrap.Modal.getInstance(document.getElementById('sdKlonlaModal'))?.hide();
+                    window.location.href = '/SahaDenetim/Detay/' + r.data.id;
+                })
+                .catch(e => alert(e.response?.data?.message || 'Klonlanamadı.'))
+                .finally(() => { this.saving = false; });
+        },
+
+        fotoSec(a) {
+            if (this.denetim.kapaliMi) return;
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.multiple = true;
+            input.onchange = () => {
+                const files = Array.from(input.files || []);
+                if (files.length === 0) return;
+                const fd = new FormData();
+                files.forEach(x => fd.append('files', x));
+                this.saving = true;
+                axios.post('/api/saha-denetim/adim/' + a.id + '/foto', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+                    .then(() => axios.get('/api/saha-denetim/' + denetimId))
+                    .then(r => { this.denetim = r.data; this.denetim.adimlar = this.denetim.adimlar || []; })
+                    .catch(e => alert(e.response?.data?.message || 'Fotoğraf yüklenemedi.'))
+                    .finally(() => { this.saving = false; });
+            };
+            input.click();
+        },
+        fotoSil(a, f) {
+            if (this.denetim.kapaliMi) return;
+            if (!confirm('Fotoğrafı silmek istediğinize emin misiniz?')) return;
+            this.saving = true;
+            axios.delete('/api/saha-denetim/adim/foto/' + f.id)
+                .then(() => axios.get('/api/saha-denetim/' + denetimId))
+                .then(r => { this.denetim = r.data; this.denetim.adimlar = this.denetim.adimlar || []; })
+                .catch(e => alert(e.response?.data?.message || 'Fotoğraf silinemedi.'))
+                .finally(() => { this.saving = false; });
+        },
+
+        setPuan(a, p) {
+            a.puan = p;
+            this.adimDoldurKaydet(a);
+        },
+        kisiModalAc(a, kisi, idx) {
+            if (this.denetim.kapaliMi) return;
+            this.kisiModal = {
+                adimId: a.id,
+                idx: (typeof idx === 'number') ? idx : null,
+                adSoyad: kisi ? (kisi.adSoyad || '') : '',
+                aciklama: kisi ? (kisi.aciklama || '') : ''
+            };
+            new bootstrap.Modal(document.getElementById('sdKisiModal')).show();
+        },
+        kisiModalKaydet() {
+            const a = (this.denetim.adimlar || []).find(x => x.id === this.kisiModal.adimId);
+            if (!a) return;
+            if (!this.kisiModal.adSoyad || !this.kisiModal.adSoyad.trim()) { alert('Kişi Adı-Soyadı zorunludur.'); return; }
+            a.ilgiliKisiler = (a.ilgiliKisiler || []);
+            const item = { adSoyad: this.kisiModal.adSoyad.trim(), aciklama: (this.kisiModal.aciklama || '').trim() || null };
+            if (this.kisiModal.idx === null) a.ilgiliKisiler.push(item);
+            else a.ilgiliKisiler.splice(this.kisiModal.idx, 1, item);
+            bootstrap.Modal.getInstance(document.getElementById('sdKisiModal')).hide();
+            this.adimDoldurKaydet(a);
+        },
+        kisiSil(a, idx) {
+            if (this.denetim.kapaliMi) return;
+            if (!confirm('Silmek istediğinize emin misiniz?')) return;
+            (a.ilgiliKisiler || []).splice(idx, 1);
+            this.adimDoldurKaydet(a);
+        },
+        urunModalAc(a, urun, idx) {
+            if (this.denetim.kapaliMi) return;
+            this.urunModal = {
+                adimId: a.id,
+                idx: (typeof idx === 'number') ? idx : null,
+                stokKodu: urun ? (urun.stokKodu || '') : '',
+                adet: urun ? Number(urun.adet || 0) : 0,
+                aciklama: urun ? (urun.aciklama || '') : ''
+            };
+            new bootstrap.Modal(document.getElementById('sdUrunModal')).show();
+        },
+        urunModalKaydet() {
+            const a = (this.denetim.adimlar || []).find(x => x.id === this.urunModal.adimId);
+            if (!a) return;
+            if (!this.urunModal.stokKodu || !this.urunModal.stokKodu.trim()) { alert('Stok Kodu zorunludur.'); return; }
+            const adet = Number(this.urunModal.adet || 0);
+            a.ilgiliUrunler = (a.ilgiliUrunler || []);
+            const item = { stokKodu: this.urunModal.stokKodu.trim(), adet: isNaN(adet) ? 0 : adet, aciklama: (this.urunModal.aciklama || '').trim() || null };
+            if (this.urunModal.idx === null) a.ilgiliUrunler.push(item);
+            else a.ilgiliUrunler.splice(this.urunModal.idx, 1, item);
+            bootstrap.Modal.getInstance(document.getElementById('sdUrunModal')).hide();
+            this.adimDoldurKaydet(a);
+        },
+        urunSil(a, idx) {
+            if (this.denetim.kapaliMi) return;
+            if (!confirm('Silmek istediğinize emin misiniz?')) return;
+            (a.ilgiliUrunler || []).splice(idx, 1);
+            this.adimDoldurKaydet(a);
+        },
+        adimDoldurKaydet(a) {
+            if (this.denetim.kapaliMi) return;
+            const payload = {
+                yapildiMi: !!a.yapildiMi,
+                puan: a.puan ?? null,
+                personelYorum: a.personelYorum || null,
+                not: a.not || null,
+                ilgiliKisiler: (a.ilgiliKisiler || []).map(x => ({ adSoyad: x.adSoyad, aciklama: x.aciklama || null })),
+                ilgiliUrunler: (a.ilgiliUrunler || []).map(x => ({ stokKodu: x.stokKodu, adet: x.adet, aciklama: x.aciklama || null }))
+            };
+            axios.put('/api/saha-denetim/adim/' + a.id + '/doldur', payload).catch(() => {});
+        }
+    }
+}).mount('#sd-detay');
+</script>
+}
+

@@ -127,7 +127,7 @@
                             <th>Durum</th>
                             <th>İlerleme</th>
                             <th>Planlanan Bitiş</th>
-                            <th>Sorumlu</th>
+                            <th>Toplam Maliyet</th>
                             <th style="width:120px"></th>
                         </tr>
                     </thead>
@@ -142,7 +142,7 @@
                                 </div>
                             </td>
                             <td class="small">{{ formatDate(p.planlananBitisTarihi) }}</td>
-                            <td class="small">{{ p.sorumluAdSoyad || '-' }}</td>
+                            <td class="small fw-semibold">{{ formatMoney(p.toplamMaliyet) }}</td>
                             <td>
                                 <div class="dropdown" data-bs-popper-config='{"strategy":"fixed"}'>
                                     <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"><i class="fas fa-cog me-1"></i> İşlemler</button>
@@ -180,6 +180,11 @@ createApp({
     },
     methods: {
         formatDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('tr-TR'); },
+        formatMoney(v) {
+            const n = Number(v || 0);
+            if (isNaN(n)) return '₺0';
+            return n.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' });
+        },
         projeSil(p) {
             if (!confirm('"' + p.ad + '" projesini silmek istediğinize emin misiniz?')) return;
             if (window.setPageLoading) window.setPageLoading(true);

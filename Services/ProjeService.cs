@@ -46,6 +46,7 @@ public class ProjeService : IProjeService
             var toplam = p.Detaylar?.Count ?? 0;
             var tamamlanan = p.Detaylar?.Count(d => d.DurumId == 4 || d.DurumId == 5) ?? 0; // İptal=4, Tamamlandı=5
             var yuzde = toplam == 0 ? 0 : (int)Math.Round(100.0 * tamamlanan / toplam);
+            var toplamMaliyet = p.Detaylar?.Sum(d => d.MaliyetFiyati ?? 0) ?? 0;
             result.Add(new ProjeListDto
             {
                 Id = p.Id,
@@ -54,7 +55,7 @@ public class ProjeService : IProjeService
                 ProgressYuzde = yuzde,
                 AktifMi = p.AktifMi,
                 PlanlananBitisTarihi = p.PlanlananBitisTarihi,
-                SorumluAdSoyad = p.SorumluKullanici?.AdSoyad,
+                ToplamMaliyet = toplamMaliyet,
                 SilinebilirMi = genelYetkili || p.OlusturanKullaniciId == userId
             });
         }

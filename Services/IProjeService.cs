@@ -21,7 +21,7 @@ public class ProjeListDto
     public int ProgressYuzde { get; set; }
     public bool AktifMi { get; set; }
     public DateTime? PlanlananBitisTarihi { get; set; }
-    public string? SorumluAdSoyad { get; set; }
+    public decimal ToplamMaliyet { get; set; }
     /// <summary>Genel yetkili veya projeyi oluşturan kullanıcı silebilir.</summary>
     public bool SilinebilirMi { get; set; }
 }

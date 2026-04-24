@@ -1,0 +1,90 @@
+@{
+    Layout = "_AdminLayout";
+}
+
+<div id="saha-denetim-yeni" data-vue-page v-cloak>
+    <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
+        <div class="w-100 text-center">
+            <div class="small text-muted mb-2">Yükleniyor...</div>
+            <div class="progress" style="max-width:260px;margin:0 auto;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="v-cloak-hidden">
+        <div class="card p-4 mb-3">
+            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <div>
+                    <h4 class="mb-1">Yeni Denetim</h4>
+                    <div class="small text-muted">Denetim adını ve kayıt tarihini girin.</div>
+                </div>
+                <a href="/SahaDenetim" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Denetimler</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Denetim Adı</label>
+                    <input v-model="form.ad" class="form-control" placeholder="Denetim adı" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Lokasyon</label>
+                    <select v-model="form.lokasyonMagazaKodu" class="form-select">
+                        <option value="">Seçiniz...</option>
+                        <option v-for="l in lokasyonlar" :key="l.lokasyonMagazaKodu" :value="l.lokasyonMagazaKodu">
+                            {{ l.lokasyonAdi }} - {{ l.lokasyonMagazaKodu }}
+                        </option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Kayıt Tarihi</label>
+                    <input v-model="form.kayitTarihi" type="date" class="form-control" />
+                </div>
+                <button class="btn btn-primary" @@click="olustur" :disabled="saving"><i class="fas fa-check me-1"></i> Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+const { createApp } = Vue;
+createApp({
+    data() {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        return {
+            loading: false,
+            saving: false,
+            lokasyonlar: [],
+            form: { ad: '', lokasyonMagazaKodu: '', kayitTarihi: `${yyyy}-${mm}-${dd}` }
+        };
+    },
+    mounted() {
+        axios.get('/api/saha-denetim/lokasyonlar')
+            .then(r => { this.lokasyonlar = r.data || []; })
+            .finally(() => { if (window.setPageLoading) window.setPageLoading(false); });
+    },
+    methods: {
+        olustur() {
+            if (!this.form.ad || !this.form.ad.trim()) { alert('Denetim adı zorunludur.'); return; }
+            this.saving = true;
+            const payload = {
+                ad: this.form.ad.trim(),
+                lokasyonMagazaKodu: this.form.lokasyonMagazaKodu || null,
+                kayitTarihi: this.form.kayitTarihi ? (this.form.kayitTarihi + 'T00:00:00') : null
+            };
+            axios.post('/api/saha-denetim', payload)
+                .then(r => { window.location.href = '/SahaDenetim/Detay/' + r.data.id; })
+                .catch(e => alert(e.response?.data?.message || 'Kayıt başarısız.'))
+                .finally(() => { this.saving = false; });
+        }
+    }
+}).mount('#saha-denetim-yeni');
+</script>
+}
+

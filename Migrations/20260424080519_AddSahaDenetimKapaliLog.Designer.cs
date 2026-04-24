@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ProjeGorevYonetimi.Data;
 
@@ -11,9 +12,11 @@ using ProjeGorevYonetimi.Data;
 namespace ProjeGorevYonetimi.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260424080519_AddSahaDenetimKapaliLog")]
+    partial class AddSahaDenetimKapaliLog
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1226,12 +1229,6 @@ namespace ProjeGorevYonetimi.Migrations
                     b.Property<DateTime>("KayitTarihi")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("LokasyonAdi")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("LokasyonId")
-                        .HasColumnType("int");
-
                     b.Property<int>("OlusturanKullaniciId")
                         .HasColumnType("int");
 
@@ -1319,55 +1316,6 @@ namespace ProjeGorevYonetimi.Migrations
                     b.HasIndex("SahaDenetimKategoriId");
 
                     b.ToTable("SahaDenetimAdimlar");
-                });
-
-            modelBuilder.Entity("ProjeGorevYonetimi.Models.Entities.SahaDenetimAdimFoto", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime?>("DeleteDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("DeletedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("DosyaAdi")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DosyaYolu")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("InsertDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("InsertedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("SahaDenetimAdimId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Sira")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdateDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("UpdatedByUserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SahaDenetimAdimId");
-
-                    b.ToTable("SahaDenetimAdimFotolar");
                 });
 
             modelBuilder.Entity("ProjeGorevYonetimi.Models.Entities.SahaDenetimAdimIlgiliKisi", b =>
@@ -1928,17 +1876,6 @@ namespace ProjeGorevYonetimi.Migrations
                     b.Navigation("SahaDenetim");
                 });
 
-            modelBuilder.Entity("ProjeGorevYonetimi.Models.Entities.SahaDenetimAdimFoto", b =>
-                {
-                    b.HasOne("ProjeGorevYonetimi.Models.Entities.SahaDenetimAdim", "SahaDenetimAdim")
-                        .WithMany("Fotograflar")
-                        .HasForeignKey("SahaDenetimAdimId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("SahaDenetimAdim");
-                });
-
             modelBuilder.Entity("ProjeGorevYonetimi.Models.Entities.SahaDenetimAdimIlgiliKisi", b =>
                 {
                     b.HasOne("ProjeGorevYonetimi.Models.Entities.SahaDenetimAdim", "SahaDenetimAdim")
@@ -2048,8 +1985,6 @@ namespace ProjeGorevYonetimi.Migrations
 
             modelBuilder.Entity("ProjeGorevYonetimi.Models.Entities.SahaDenetimAdim", b =>
                 {
-                    b.Navigation("Fotograflar");
-
                     b.Navigation("IlgiliKisiler");
 
                     b.Navigation("IlgiliUrunler");

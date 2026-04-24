@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjeGorevYonetimi.Data;
+using ProjeGorevYonetimi.Models.Entities;
 using ProjeGorevYonetimi.Services;
 
 namespace ProjeGorevYonetimi.Controllers.Api;
@@ -33,6 +34,63 @@ public class DashboardController : ControllerBase
 
         var userId = _currentUser.GetCurrentUserId();
         var genelYetkiliMi = _yetki.GenelYetkiliMi();
+
+        // Notlar
+        IQueryable<Not> notQuery = _db.Notlar
+            .AsNoTracking()
+            .Include(n => n.YetkiKullanicilar)
+            .Include(n => n.OlusturanKullanici)
+            .AsQueryable();
+        if (!genelYetkiliMi)
+        {
+            notQuery = notQuery.Where(n =>
+                n.OlusturanKullaniciId == userId ||
+                (n.YetkiTipi == 1 && n.YetkiKullanicilar!.Any(y => y.KullaniciId == userId)));
+        }
+
+        var notToplam = await notQuery.CountAsync(ct);
+        var notPaylasimli = await notQuery.Where(n => n.YetkiTipi == 1).CountAsync(ct);
+        var notSadeceBen = notToplam - notPaylasimli;
+        var sonNotlar = await notQuery
+            .OrderByDescending(n => n.UpdateDate ?? n.InsertDate)
+            .ThenByDescending(n => n.Id)
+            .Select(n => new DashboardNotItemDto
+            {
+                Id = n.Id,
+                Baslik = n.Baslik,
+                YetkiTipi = n.YetkiTipi,
+                InsertDate = n.InsertDate,
+                OlusturanAdSoyad = n.OlusturanKullanici.AdSoyad
+            })
+            .Take(5)
+            .ToListAsync(ct);
+
+        // Saha denetim
+        var sdQuery = _db.SahaDenetimler
+            .AsNoTracking()
+            .Include(x => x.OlusturanKullanici)
+            .AsQueryable();
+
+        var sdToplam = await sdQuery.CountAsync(ct);
+        var sdAcik = await sdQuery.Where(x => !x.KapaliMi).CountAsync(ct);
+        var sdKapali = sdToplam - sdAcik;
+        var sonDenetimler = await sdQuery
+            .OrderByDescending(x => x.KayitTarihi)
+            .ThenByDescending(x => x.Id)
+            .Select(x => new DashboardDenetimItemDto
+            {
+                Id = x.Id,
+                Ad = x.Ad,
+                KayitTarihi = x.KayitTarihi,
+                KapaliMi = x.KapaliMi,
+                LokasyonId = x.LokasyonId,
+                LokasyonAdi = x.LokasyonAdi,
+                OlusturanAdSoyad = x.OlusturanKullanici.AdSoyad,
+                AdimSayisi = _db.SahaDenetimAdimlar.Count(a => a.SahaDenetimId == x.Id)
+            })
+            .Take(5)
+            .ToListAsync(ct);
+
         List<int> tumGorevIds = new();
         if (!genelYetkiliMi)
         {
@@ -80,7 +138,21 @@ public class DashboardController : ControllerBase
             AktifProjeler = aktifProjeler,
             GorevDurumOzeti = gorevDurumOzeti,
             GorevGrubuSayisi = gorevGrubuSayisi,
-            MeGenelYetkiliMi = genelYetkiliMi
+            MeGenelYetkiliMi = genelYetkiliMi,
+            Notlar = new DashboardNotOzetDto
+            {
+                Toplam = notToplam,
+                SadeceBen = notSadeceBen,
+                Paylasimli = notPaylasimli,
+                SonNotlar = sonNotlar
+            },
+            SahaDenetim = new DashboardSahaDenetimOzetDto
+            {
+                Toplam = sdToplam,
+                Acik = sdAcik,
+                Kapali = sdKapali,
+                SonDenetimler = sonDenetimler
+            }
         });
     }
 }
@@ -92,10 +164,49 @@ public class DashboardDto
     public List<GorevDurumOzetDto> GorevDurumOzeti { get; set; } = new();
     public int GorevGrubuSayisi { get; set; }
     public bool MeGenelYetkiliMi { get; set; }
+    public DashboardNotOzetDto Notlar { get; set; } = new();
+    public DashboardSahaDenetimOzetDto SahaDenetim { get; set; } = new();
 }
 
 public class GorevDurumOzetDto
 {
     public string DurumAd { get; set; } = "";
     public int Adet { get; set; }
+}
+
+public class DashboardNotOzetDto
+{
+    public int Toplam { get; set; }
+    public int SadeceBen { get; set; }
+    public int Paylasimli { get; set; }
+    public List<DashboardNotItemDto> SonNotlar { get; set; } = new();
+}
+
+public class DashboardNotItemDto
+{
+    public int Id { get; set; }
+    public string Baslik { get; set; } = "";
+    public int YetkiTipi { get; set; }
+    public DateTime? InsertDate { get; set; }
+    public string? OlusturanAdSoyad { get; set; }
+}
+
+public class DashboardSahaDenetimOzetDto
+{
+    public int Toplam { get; set; }
+    public int Acik { get; set; }
+    public int Kapali { get; set; }
+    public List<DashboardDenetimItemDto> SonDenetimler { get; set; } = new();
+}
+
+public class DashboardDenetimItemDto
+{
+    public int Id { get; set; }
+    public string Ad { get; set; } = "";
+    public DateTime KayitTarihi { get; set; }
+    public bool KapaliMi { get; set; }
+    public int? LokasyonId { get; set; }
+    public string? LokasyonAdi { get; set; }
+    public string? OlusturanAdSoyad { get; set; }
+    public int AdimSayisi { get; set; }
 }
