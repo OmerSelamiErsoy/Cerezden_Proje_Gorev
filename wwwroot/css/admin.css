@@ -820,6 +820,14 @@ body {
     .admin-wrap .table {
         min-width: 500px;
     }
+
+    /* Liste ekranları: header içindeki input/select mobilde tam genişlik */
+    .admin-wrap .card-header .form-control,
+    .admin-wrap .card-header .form-select {
+        width: 100%;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
     .stat-card-value {
         font-size: 1.35rem;
     }

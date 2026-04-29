@@ -3,6 +3,12 @@
 }
 <style>
     #projeler-app .table-responsive { overflow: visible !important; }
+    @@media (max-width: 767.98px) {
+        #projeler-app .table-responsive {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
+        }
+    }
     .projeler-page-header {
         display: flex;
         justify-content: space-between;

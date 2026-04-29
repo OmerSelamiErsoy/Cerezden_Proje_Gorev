@@ -3,6 +3,12 @@
 }
 <style>
     #dashboard-app .table-responsive { overflow: visible !important; }
+    @@media (max-width: 767.98px) {
+        #dashboard-app .table-responsive {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
+        }
+    }
     .dashboard-hero {
         background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
         border-radius: var(--radius-lg, 14px);
