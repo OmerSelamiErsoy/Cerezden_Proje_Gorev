@@ -160,8 +160,8 @@
         }
         #sd-detay .kv label { margin: 0; font-size: 0.8rem; color: #64748b; }
 
-        /* Yapıldı checkbox vurgusu */
-        #sd-detay .done-check-wrap {
+        /* Yapıldı switch (daha modern) */
+        #sd-detay .done-switch {
             display: inline-flex;
             align-items: center;
             gap: 10px;
@@ -170,16 +170,46 @@
             border-radius: 999px;
             background: #f8fafc;
         }
-        #sd-detay .done-check-wrap .form-check-input {
-            width: 1.3rem;
-            height: 1.3rem;
+        #sd-detay .done-switch .form-check-input {
+            width: 2.65rem;
+            height: 1.4rem;
+            /* Bootstrap .form-switch negatif margin veriyor; kartlarda kesilmesin */
+            margin-left: 0 !important;
             margin-top: 0;
             cursor: pointer;
+            border: 1px solid #cbd5e1;
+            background-color: #e2e8f0;
         }
-        #sd-detay .done-check-wrap .form-check-label {
-            font-weight: 700;
+        #sd-detay .done-switch .form-check-input:focus {
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.16);
+            border-color: #93c5fd;
+        }
+        #sd-detay .done-switch .form-check-input:checked {
+            background-color: #22c55e;
+            border-color: #22c55e;
+        }
+        #sd-detay .done-switch .done-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 800;
             color: #0f172a;
             cursor: pointer;
+            user-select: none;
+        }
+        #sd-detay .done-switch .done-state {
+            font-size: 0.78rem;
+            font-weight: 800;
+            padding: 3px 10px;
+            border-radius: 999px;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            color: #64748b;
+        }
+        #sd-detay .done-switch .done-state.on {
+            background: #dfffe1;
+            border-color: #bfe9c3;
+            color: #166534;
         }
 
         /* Fotoğraflar */
@@ -214,6 +244,88 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
+
+        /* Accordion daha modern ve anlaşılır */
+        #sd-detay .adim-accordion .accordion-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+            transition: box-shadow 0.15s ease, transform 0.15s ease;
+        }
+        #sd-detay .adim-accordion .accordion-item:hover {
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+            transform: translateY(-1px);
+        }
+        #sd-detay .adim-accordion .accordion-button {
+            padding: 14px 16px;
+            background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+        }
+        #sd-detay .adim-accordion .accordion-button:not(.collapsed) {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        #sd-detay .sd-step-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+            width: 100%;
+        }
+        #sd-detay .sd-step-left { flex: 1; min-width: 240px; }
+        #sd-detay .sd-step-title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        #sd-detay .sd-step-status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: #ef4444; /* açık */
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+            margin-top: 2px;
+        }
+        #sd-detay .sd-step-status-dot.done {
+            background: #22c55e;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.14);
+        }
+        #sd-detay .sd-step-title {
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: -0.01em;
+        }
+        #sd-detay .sd-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            color: #0f172a;
+            white-space: nowrap;
+        }
+        #sd-detay .sd-pill.muted { color: #64748b; background: #f8fafc; }
+        #sd-detay .sd-pill.done { color: #166534; border-color: #bfe9c3; background: #dfffe1; }
+        #sd-detay .sd-pill.score { color: #92400e; border-color: #fde68a; background: #fffbeb; }
+        #sd-detay .sd-step-desc {
+            margin-top: 6px;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        #sd-detay .sd-step-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        #sd-detay .sd-step-right .sd-pill { background: #f8fafc; }
     </style>
 }
 
@@ -291,32 +403,43 @@
                                     :data-bs-target="'#sd-adim-c-' + a.id"
                                     aria-expanded="false"
                                     :aria-controls="'sd-adim-c-' + a.id">
-                                <div class="w-100 d-flex justify-content-between align-items-start gap-2 flex-wrap">
-                                    <div>
-                                        <div class="adim-baslik">
-                                            {{ a.ad }}
-                                            <span v-if="denetim.kapaliMi" class="text-muted">
-                                                ({{ a.yapildiMi ? 'Yapıldı' : 'Yapılmadı' }})
-                                            </span>
+                                <div class="sd-step-head">
+                                    <div class="sd-step-left">
+                                        <div class="sd-step-title-row">
+                                            <span class="sd-step-status-dot" :class="{ done: !!a.yapildiMi }"></span>
+                                            <span class="sd-step-title">{{ a.ad }}</span>
+                                            <span v-if="!!a.yapildiMi" class="sd-pill done"><i class="fas fa-check"></i> Yapıldı</span>
+                                            <span v-else class="sd-pill muted"><i class="fas fa-circle"></i> Açık</span>
+                                            <span class="sd-pill muted"><i class="fas fa-tag"></i> {{ a.kategoriAd || 'Kategorisiz' }}</span>
                                         </div>
-                                        <div v-if="a.aciklama" class="small adim-aciklama mt-1">{{ a.aciklama }}</div>
+
+                                        <div v-if="a.aciklama" class="sd-step-desc">{{ a.aciklama }}</div>
 
                                         <div class="step-meta-row">
                                             <span v-if="hasTip(a, 1)" class="chip chip-tip"><i class="fas fa-star"></i> Puanlama</span>
                                             <span v-if="hasTip(a, 2)" class="chip chip-tip"><i class="fas fa-users"></i> İlgili Kişiler</span>
                                             <span v-if="hasTip(a, 4)" class="chip chip-tip"><i class="fas fa-box"></i> İlgili Ürünler</span>
-                                            <span class="chip chip-muted"><i class="fas fa-tag"></i> {{ a.kategoriAd || 'Kategorisiz' }}</span>
                                         </div>
+                                    </div>
+
+                                    <div class="sd-step-right">
+                                        <span v-if="hasTip(a, 1)" class="sd-pill score"><i class="fas fa-star"></i> {{ a.puan || 0 }}/10</span>
+                                        <span v-if="hasTip(a, 2)" class="sd-pill"><i class="fas fa-users"></i> {{ (a.ilgiliKisiler || []).length }}</span>
+                                        <span v-if="hasTip(a, 4)" class="sd-pill"><i class="fas fa-box"></i> {{ (a.ilgiliUrunler || []).length }}</span>
+                                        <span class="sd-pill"><i class="fas fa-images"></i> {{ (a.fotograflar || []).length }}</span>
                                     </div>
                                 </div>
                             </button>
                         </h2>
                         <div :id="'sd-adim-c-' + a.id" class="accordion-collapse collapse" :aria-labelledby="'sd-adim-h-' + a.id" data-bs-parent="#sdAdimAccordionRoot">
                             <div class="accordion-body">
-                                <div class="d-flex justify-content-start mb-2">
-                                    <div v-if="!denetim.kapaliMi" class="form-check done-check-wrap" @@click.stop>
-                                        <input class="form-check-input" type="checkbox" v-model="a.yapildiMi" @@change="adimDoldurKaydet(a)" :id="'chk'+a.id">
-                                        <label class="form-check-label" :for="'chk'+a.id">Yapıldı</label>
+                                <div class="d-flex justify-content-start align-items-center my-2">
+                                    <div v-if="!denetim.kapaliMi" class="form-check form-switch done-switch ms-0" style="padding-left:0" @@click.stop>
+                                        <input class="form-check-input" type="checkbox" role="switch" v-model="a.yapildiMi" @@change="adimDoldurKaydet(a)" :id="'chk'+a.id">
+                                        <label class="done-label" :for="'chk'+a.id">
+                                            Yapıldı
+                                            <span class="done-state" :class="{ on: !!a.yapildiMi }">{{ a.yapildiMi ? 'Tamam' : 'Bekliyor' }}</span>
+                                        </label>
                                     </div>
                                 </div>
 
