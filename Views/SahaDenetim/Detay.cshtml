@@ -22,6 +22,71 @@
         #sd-detay .star.active { color: #f59e0b; }
         #sd-detay textarea { resize: vertical; }
 
+        #sd-detay .badge-soft {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.78rem;
+            border: 1px solid transparent;
+        }
+        #sd-detay .badge-soft.private { background:#eef2ff; color:#3730a3; border-color:#e0e7ff; }
+        #sd-detay .badge-soft.shared { background:#ecfeff; color:#155e75; border-color:#cffafe; }
+        #sd-detay .sd-share-badge { cursor: pointer; user-select: none; }
+        #sd-detay .sd-share-badge:hover { filter: brightness(0.98); }
+
+        /* Paylaşılacak Kişiler (Denetim Güncelle Modal) */
+        #sd-detay .paylasilacak-kisiler-list {
+            max-height: 260px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 8px;
+            background: #fafafa;
+        }
+        #sd-detay .paylasilacak-kisiler-list .paylasilacak-kisi-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        #sd-detay .paylasilacak-kisiler-list .paylasilacak-kisi-item:hover { background: #f1f5f9; }
+        #sd-detay .paylasilacak-kisiler-list .paylasilacak-kisi-item .custom-checkbox-wrap {
+            flex-shrink: 0;
+            width: 22px;
+            height: 22px;
+            position: relative;
+            border-radius: 6px;
+            border: 2px solid #cbd5e1;
+            background: #fff;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        #sd-detay .paylasilacak-kisiler-list .paylasilacak-kisi-item.selected .custom-checkbox-wrap {
+            background: #3b82f6;
+            border-color: #3b82f6;
+        }
+        #sd-detay .paylasilacak-kisiler-list .paylasilacak-kisi-item .custom-checkbox-wrap .check-icon {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        #sd-detay .paylasilacak-kisiler-list .paylasilacak-kisi-item.selected .custom-checkbox-wrap .check-icon { opacity: 1; }
+        #sd-detay .paylasilacak-kisiler-list .paylasilacak-kisi-item .custom-checkbox-wrap .check-icon svg {
+            width: 14px;
+            height: 14px;
+            stroke: #fff;
+        }
+        #sd-detay .paylasilacak-kisiler-list .paylasilacak-kisi-item .kisi-adi { flex: 1; font-weight: 500; color: #1e293b; }
+        #sd-detay .paylasilacak-kisiler-list .paylasilacak-kisi-item .kisi-ceptel { font-size: 0.875rem; color: #64748b; }
+
         /* Modern detay görünümü */
         #sd-detay .step-meta-row {
             display: flex;
@@ -173,6 +238,11 @@
                         <i class="fas fa-calendar-alt me-1"></i> {{ formatDate(denetim.kayitTarihi) }}
                         <span class="mx-2">•</span>
                         <i class="fas fa-location-dot me-1"></i> {{ (denetim.lokasyonAdi ? (denetim.lokasyonAdi + ' - ' + (denetim.lokasyonId || '')) : '-') }}
+                        <span class="mx-2">•</span>
+                        <i class="fas fa-list-ol me-1"></i> Adım Sayısı: {{ (denetim.adimlar || []).length }}
+                        <span class="mx-2">•</span>
+                        <span v-if="denetim.yetkiTipi === 0" class="badge-soft shared">Genel Paylaşım</span>
+                        <span v-else class="badge-soft private sd-share-badge" @@click="paylasimKisileriAc">Kişi bazlı Paylaşım</span>
                     </div>
                 </div>
                 <div class="d-flex gap-2 align-items-center">
@@ -534,10 +604,60 @@
                                 </option>
                             </select>
                         </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Paylaşılacak Kişiler</label>
+                            <div>
+                                <label class="me-3"><input type="radio" v-model.number="denetimGuncelleForm.yetkiTipi" :value="0" /> Genel (tüm kullanıcılar)</label>
+                                <label><input type="radio" v-model.number="denetimGuncelleForm.yetkiTipi" :value="1" /> Kişi bazlı</label>
+                            </div>
+                            <div v-if="denetimGuncelleForm.yetkiTipi === 1" class="mt-2">
+                                <div class="paylasilacak-kisiler-list">
+                                    <div v-for="k in kullanicilar" :key="k.id" class="paylasilacak-kisi-item"
+                                         :class="{ selected: (denetimGuncelleForm.yetkiKullaniciIds || []).indexOf(k.id) !== -1 }"
+                                         @@click="yetkiKullaniciToggle(k)">
+                                        <div class="custom-checkbox-wrap">
+                                            <span class="check-icon">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                                </svg>
+                                            </span>
+                                        </div>
+                                        <span class="kisi-adi">{{ k.adSoyad }}</span>
+                                        <span class="kisi-ceptel">{{ k.cepTel || '-' }}</span>
+                                    </div>
+                                </div>
+                                <small class="text-muted">Birden fazla kişi seçebilirsiniz.</small>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> İptal</button>
                         <button type="button" class="btn btn-primary" @@click="denetimGuncelleKaydet" :disabled="saving"><i class="fas fa-save me-1"></i> Kaydet</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Paylaşım Modal -->
+        <div class="modal fade" id="sdPaylasimModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-user-shield me-2"></i> Paylaşılan Kişiler</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div v-if="(paylasilanKisiler || []).length === 0" class="text-muted fst-italic">Seçili kişi yok.</div>
+                        <div v-else class="small">
+                            <div v-for="p in paylasilanKisiler" :key="p.id" class="mb-2">
+                                <div class="fw-medium">{{ p.adSoyad }}</div>
+                                <div class="text-muted">{{ p.cepTel || '-' }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Kapat</button>
                     </div>
                 </div>
             </div>
@@ -612,14 +732,15 @@ createApp({
         return {
             loading: true,
             saving: false,
-            denetim: { id: denetimId, ad: '', kayitTarihi: null, olusturanAdSoyad: '', canDelete: false, kapaliMi: false, kapatanAdSoyad: '', kapatmaTarihi: null, geriAcanAdSoyad: '', geriAcmaTarihi: null, lokasyonId: null, lokasyonAdi: '', adimlar: [] },
+            denetim: { id: denetimId, ad: '', kayitTarihi: null, olusturanAdSoyad: '', canDelete: false, yetkiTipi: 1, yetkiKullaniciIds: [], kapaliMi: false, kapatanAdSoyad: '', kapatmaTarihi: null, geriAcanAdSoyad: '', geriAcmaTarihi: null, lokasyonId: null, lokasyonAdi: '', adimlar: [] },
             kategoriler: [],
             lokasyonlar: [],
+            kullanicilar: [],
             adimForm: { id: null, ad: '', aciklama: '', kategoriId: null, tipler: 0, sira: 1 },
             adimTipSecim: { puanlama: false, ilgiliKisiler: false, ilgiliUrunler: false },
             kisiModal: { adimId: null, idx: null, adSoyad: '', aciklama: '' },
             urunModal: { adimId: null, idx: null, stokKodu: '', adet: 0, aciklama: '' },
-            denetimGuncelleForm: { ad: '', lokasyonMagazaKodu: '' },
+            denetimGuncelleForm: { ad: '', lokasyonMagazaKodu: '', yetkiTipi: 1, yetkiKullaniciIds: [] },
             klonlaForm: { ad: '' }
         };
     },
@@ -633,19 +754,41 @@ createApp({
                 map.get(key).adimlar.push(a);
             });
             return Array.from(map.values());
+        },
+        paylasilanKisiler() {
+            const ids = (this.denetim && Array.isArray(this.denetim.yetkiKullaniciIds))
+                ? this.denetim.yetkiKullaniciIds
+                : [];
+            if (!ids || ids.length === 0) return [];
+            const list = (this.kullanicilar || []).filter(k => ids.indexOf(k.id) !== -1);
+            return list.sort((a, b) => (a.adSoyad || '').localeCompare(b.adSoyad || '', 'tr'));
         }
     },
     mounted() {
         Promise.all([
             axios.get('/api/saha-denetim/' + denetimId).then(r => { this.denetim = r.data; this.denetim.adimlar = this.denetim.adimlar || []; }),
             axios.get('/api/Parametre/saha-denetim-kategorileri').then(r => { this.kategoriler = (r.data || []).slice().sort((a,b) => (a.ad||'').localeCompare(b.ad||'', 'tr')); }),
-            axios.get('/api/saha-denetim/lokasyonlar').then(r => { this.lokasyonlar = r.data || []; })
+            axios.get('/api/saha-denetim/lokasyonlar').then(r => { this.lokasyonlar = r.data || []; }),
+            axios.get('/api/Kullanicilar').then(r => { this.kullanicilar = r.data || []; })
         ])
         .finally(() => { this.loading = false; if (window.setPageLoading) window.setPageLoading(false); });
     },
     methods: {
         formatDate(v) { if (!v) return '-'; try { const d = new Date(v); return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('tr-TR'); } catch { return '-'; } },
         formatDateTime(v) { if (!v) return '-'; try { const d = new Date(v); return isNaN(d.getTime()) ? '-' : d.toLocaleString('tr-TR'); } catch { return '-'; } },
+        yetkiKullaniciToggle(k) {
+            const ids = this.denetimGuncelleForm.yetkiKullaniciIds || [];
+            const idx = ids.indexOf(k.id);
+            if (idx === -1) ids.push(k.id);
+            else ids.splice(idx, 1);
+            this.denetimGuncelleForm.yetkiKullaniciIds = ids;
+        },
+            paylasimKisileriAc() {
+                if (Number(this.denetim?.yetkiTipi ?? 1) !== 1) return;
+                const el = document.getElementById('sdPaylasimModal');
+                if (!el) return;
+                new bootstrap.Modal(el).show();
+            },
         hasTip(a, flag) { return ((Number(a.tipler || 0)) & flag) === flag; },
         calcTipler() {
             let t = 0;
@@ -703,7 +846,7 @@ createApp({
         },
         denetimSil() {
             if (this.denetim.kapaliMi) return;
-            if (!this.denetim.canDelete) { alert('Bu denetimi sadece oluşturan kişi silebilir.'); return; }
+            if (!this.denetim.canDelete) { alert('Bu denetimi silme yetkiniz yok.'); return; }
             if (!confirm('Denetimi silmek istediğinize emin misiniz?')) return;
             this.saving = true;
             axios.delete('/api/saha-denetim/' + denetimId)
@@ -713,7 +856,12 @@ createApp({
         },
         denetimGuncelleAc() {
             if (this.denetim.kapaliMi) return;
-            this.denetimGuncelleForm = { ad: this.denetim.ad || '', lokasyonMagazaKodu: (this.denetim.lokasyonId != null ? String(this.denetim.lokasyonId) : '') };
+            this.denetimGuncelleForm = {
+                ad: this.denetim.ad || '',
+                lokasyonMagazaKodu: (this.denetim.lokasyonId != null ? String(this.denetim.lokasyonId) : ''),
+                yetkiTipi: Number(this.denetim.yetkiTipi ?? 1),
+                yetkiKullaniciIds: (this.denetim.yetkiKullaniciIds || []).slice()
+            };
             new bootstrap.Modal(document.getElementById('sdDenetimGuncelleModal')).show();
         },
         denetimGuncelleKaydet() {
@@ -721,7 +869,13 @@ createApp({
             if (!this.denetimGuncelleForm.ad || !this.denetimGuncelleForm.ad.trim()) { alert('Denetim adı zorunludur.'); return; }
             if (!confirm('Güncellemek istediğinize emin misiniz?')) return;
             this.saving = true;
-            axios.put('/api/saha-denetim/' + denetimId, { ad: this.denetimGuncelleForm.ad.trim(), lokasyonMagazaKodu: (this.denetimGuncelleForm.lokasyonMagazaKodu || null), kayitTarihi: null })
+            axios.put('/api/saha-denetim/' + denetimId, {
+                ad: this.denetimGuncelleForm.ad.trim(),
+                lokasyonMagazaKodu: (this.denetimGuncelleForm.lokasyonMagazaKodu || null),
+                kayitTarihi: null,
+                yetkiTipi: this.denetimGuncelleForm.yetkiTipi,
+                yetkiKullaniciIds: this.denetimGuncelleForm.yetkiTipi === 1 ? (this.denetimGuncelleForm.yetkiKullaniciIds || []) : null
+            })
                 .then(() => axios.get('/api/saha-denetim/' + denetimId))
                 .then(r => { this.denetim = r.data; this.denetim.adimlar = this.denetim.adimlar || []; bootstrap.Modal.getInstance(document.getElementById('sdDenetimGuncelleModal'))?.hide(); })
                 .catch(e => alert(e.response?.data?.message || 'Güncellenemedi.'))

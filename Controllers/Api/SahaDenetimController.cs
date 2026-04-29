@@ -89,9 +89,22 @@ public class SahaDenetimController : ControllerBase
         var userId = _currentUser.GetCurrentUserId();
         var genelYetkili = _yetki.GenelYetkiliMi();
 
-        var q = _db.SahaDenetimler.AsNoTracking().Include(x => x.OlusturanKullanici).AsQueryable();
+        var q = _db.SahaDenetimler
+            .AsNoTracking()
+            .Include(x => x.OlusturanKullanici)
+            .Include(x => x.YetkiKullanicilar)
+            .AsQueryable();
+
+        // Yetki:
+        // 0 = Genel (tüm kullanıcılar)
+        // 1 = Kişi bazlı (seçili kişiler + oluşturan kişi)
         if (!genelYetkili)
-            q = q.Where(x => x.OlusturanKullaniciId == userId);
+        {
+            q = q.Where(x =>
+                x.YetkiTipi == 0 ||
+                x.OlusturanKullaniciId == userId ||
+                (x.YetkiTipi == 1 && x.YetkiKullanicilar!.Any(y => y.KullaniciId == userId)));
+        }
 
         var list = await q
             .OrderByDescending(x => x.KayitTarihi)
@@ -105,6 +118,7 @@ public class SahaDenetimController : ControllerBase
                 KapaliMi = x.KapaliMi,
                 LokasyonId = x.LokasyonId,
                 LokasyonAdi = x.LokasyonAdi,
+                YetkiTipi = x.YetkiTipi,
                 AdimSayisi = _db.SahaDenetimAdimlar.Count(a => a.SahaDenetimId == x.Id)
             })
             .ToListAsync(ct);
@@ -124,17 +138,30 @@ public class SahaDenetimController : ControllerBase
             lokasyonId = lid;
         var lokasyonAdi = await ResolveLokasyonAdiAsync(lokasyonId, ct);
 
+        var yetkiTipi = dto.YetkiTipi == 0 || dto.YetkiTipi == 1 ? dto.YetkiTipi : 1;
+
         var entity = new SahaDenetim
         {
             Ad = dto.Ad.Trim(),
             KayitTarihi = dto.KayitTarihi ?? DateTime.Now,
             OlusturanKullaniciId = userId,
+            YetkiTipi = yetkiTipi,
             KapaliMi = false,
             LokasyonId = lokasyonId,
             LokasyonAdi = lokasyonAdi
         };
         _db.SahaDenetimler.Add(entity);
         await _db.SaveChangesAsync(ct);
+
+        if (yetkiTipi == 1 && dto.YetkiKullaniciIds != null && dto.YetkiKullaniciIds.Count > 0)
+        {
+            foreach (var kid in dto.YetkiKullaniciIds.Distinct())
+            {
+                if (kid == userId) continue; // Oluşturan kişi zaten görünür/yetkili
+                _db.SahaDenetimYetkiKullanicilar.Add(new SahaDenetimYetkiKullanici { SahaDenetimId = entity.Id, KullaniciId = kid });
+            }
+            await _db.SaveChangesAsync(ct);
+        }
         return Ok(new { id = entity.Id });
     }
 
@@ -147,6 +174,7 @@ public class SahaDenetimController : ControllerBase
         var q = _db.SahaDenetimler
             .AsNoTracking()
             .Include(x => x.OlusturanKullanici)
+            .Include(x => x.YetkiKullanicilar)
             .Include(x => x.KapatanKullanici)
             .Include(x => x.GeriAcanKullanici)
             .Include(x => x.Adimlar!)
@@ -159,7 +187,12 @@ public class SahaDenetimController : ControllerBase
                 .ThenInclude(a => a.Fotograflar)
             .AsQueryable();
         if (!genelYetkili)
-            q = q.Where(x => x.OlusturanKullaniciId == userId);
+        {
+            q = q.Where(x =>
+                x.YetkiTipi == 0 ||
+                x.OlusturanKullaniciId == userId ||
+                (x.YetkiTipi == 1 && x.YetkiKullanicilar!.Any(y => y.KullaniciId == userId)));
+        }
 
         var denetim = await q.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (denetim == null) return Forbid();
@@ -201,7 +234,15 @@ public class SahaDenetimController : ControllerBase
             Ad = denetim.Ad,
             KayitTarihi = denetim.KayitTarihi,
             OlusturanAdSoyad = denetim.OlusturanKullanici.AdSoyad,
-            CanDelete = denetim.OlusturanKullaniciId == userId,
+            YetkiTipi = denetim.YetkiTipi,
+            YetkiKullaniciIds = denetim.YetkiKullanicilar != null
+                ? denetim.YetkiKullanicilar.Select(y => y.KullaniciId).Distinct().ToList()
+                : new List<int>(),
+            // Yetki: Genel yetkili / Genel paylaşım / (Kişi bazlı ise) paylaşılan kişi veya oluşturan
+            CanDelete = genelYetkili ||
+                         denetim.YetkiTipi == 0 ||
+                         denetim.OlusturanKullaniciId == userId ||
+                         (denetim.YetkiTipi == 1 && denetim.YetkiKullanicilar!.Any(y => y.KullaniciId == userId)),
             KapaliMi = denetim.KapaliMi,
             KapatanAdSoyad = denetim.KapatanKullanici?.AdSoyad,
             KapatmaTarihi = denetim.KapatmaTarihi,
@@ -219,11 +260,19 @@ public class SahaDenetimController : ControllerBase
         var userId = _currentUser.GetCurrentUserId();
         var genelYetkili = _yetki.GenelYetkiliMi();
 
-        var entity = await _db.SahaDenetimler.FirstOrDefaultAsync(x => x.Id == id, ct);
+        var entity = await _db.SahaDenetimler
+            .Include(x => x.YetkiKullanicilar)
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity == null) return NotFound();
-        if (!genelYetkili && entity.OlusturanKullaniciId != userId) return Forbid();
+        if (!(genelYetkili ||
+              entity.YetkiTipi == 0 ||
+              entity.OlusturanKullaniciId == userId ||
+              (entity.YetkiTipi == 1 && entity.YetkiKullanicilar!.Any(y => y.KullaniciId == userId))))
+            return Forbid();
         if (string.IsNullOrWhiteSpace(dto.Ad))
             return BadRequest(new { message = "Denetim adı zorunludur." });
+
+        var yetkiTipi = dto.YetkiTipi == 0 || dto.YetkiTipi == 1 ? dto.YetkiTipi : 1;
 
         int? lokasyonId = null;
         if (!string.IsNullOrWhiteSpace(dto.LokasyonMagazaKodu) && int.TryParse(dto.LokasyonMagazaKodu.Trim(), out var lid))
@@ -234,6 +283,20 @@ public class SahaDenetimController : ControllerBase
         entity.KayitTarihi = dto.KayitTarihi ?? entity.KayitTarihi;
         entity.LokasyonId = lokasyonId;
         entity.LokasyonAdi = lokasyonAdi;
+
+        entity.YetkiTipi = yetkiTipi;
+
+        var mevcut = await _db.SahaDenetimYetkiKullanicilar.Where(y => y.SahaDenetimId == id).ToListAsync(ct);
+        _db.SahaDenetimYetkiKullanicilar.RemoveRange(mevcut);
+
+        if (yetkiTipi == 1 && dto.YetkiKullaniciIds != null)
+        {
+            foreach (var kid in dto.YetkiKullaniciIds.Distinct())
+            {
+                if (kid == userId) continue;
+                _db.SahaDenetimYetkiKullanicilar.Add(new SahaDenetimYetkiKullanici { SahaDenetimId = id, KullaniciId = kid });
+            }
+        }
         await _db.SaveChangesAsync(ct);
         return Ok();
     }
@@ -242,9 +305,16 @@ public class SahaDenetimController : ControllerBase
     public async Task<IActionResult> Sil(int id, CancellationToken ct)
     {
         var userId = _currentUser.GetCurrentUserId();
-        var entity = await _db.SahaDenetimler.FirstOrDefaultAsync(x => x.Id == id, ct);
+        var genelYetkili = _yetki.GenelYetkiliMi();
+        var entity = await _db.SahaDenetimler
+            .Include(x => x.YetkiKullanicilar)
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity == null) return NotFound();
-        if (entity.OlusturanKullaniciId != userId) return Forbid();
+        if (!(genelYetkili ||
+              entity.YetkiTipi == 0 ||
+              entity.OlusturanKullaniciId == userId ||
+              (entity.YetkiTipi == 1 && entity.YetkiKullanicilar!.Any(y => y.KullaniciId == userId))))
+            return Forbid();
 
         entity.IsDeleted = true;
         entity.DeleteDate = DateTime.Now;
@@ -259,9 +329,15 @@ public class SahaDenetimController : ControllerBase
         var userId = _currentUser.GetCurrentUserId();
         var genelYetkili = _yetki.GenelYetkiliMi();
 
-        var entity = await _db.SahaDenetimler.FirstOrDefaultAsync(x => x.Id == id, ct);
+        var entity = await _db.SahaDenetimler
+            .Include(x => x.YetkiKullanicilar)
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity == null) return NotFound();
-        if (!genelYetkili && entity.OlusturanKullaniciId != userId) return Forbid();
+        if (!(genelYetkili ||
+              entity.YetkiTipi == 0 ||
+              entity.OlusturanKullaniciId == userId ||
+              (entity.YetkiTipi == 1 && entity.YetkiKullanicilar!.Any(y => y.KullaniciId == userId))))
+            return Forbid();
         if (entity.KapaliMi) return Ok();
 
         entity.KapaliMi = true;
@@ -277,9 +353,15 @@ public class SahaDenetimController : ControllerBase
         var userId = _currentUser.GetCurrentUserId();
         var genelYetkili = _yetki.GenelYetkiliMi();
 
-        var entity = await _db.SahaDenetimler.FirstOrDefaultAsync(x => x.Id == id, ct);
+        var entity = await _db.SahaDenetimler
+            .Include(x => x.YetkiKullanicilar)
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity == null) return NotFound();
-        if (!genelYetkili && entity.OlusturanKullaniciId != userId) return Forbid();
+        if (!(genelYetkili ||
+              entity.YetkiTipi == 0 ||
+              entity.OlusturanKullaniciId == userId ||
+              (entity.YetkiTipi == 1 && entity.YetkiKullanicilar!.Any(y => y.KullaniciId == userId))))
+            return Forbid();
         if (!entity.KapaliMi) return Ok();
 
         entity.KapaliMi = false;
@@ -300,19 +382,35 @@ public class SahaDenetimController : ControllerBase
         var kaynak = await _db.SahaDenetimler
             .AsNoTracking()
             .Include(x => x.Adimlar)
+            .Include(x => x.YetkiKullanicilar)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (kaynak == null) return NotFound();
-        if (!genelYetkili && kaynak.OlusturanKullaniciId != userId) return Forbid();
+        if (!(genelYetkili ||
+              kaynak.YetkiTipi == 0 ||
+              kaynak.OlusturanKullaniciId == userId ||
+              (kaynak.YetkiTipi == 1 && kaynak.YetkiKullanicilar!.Any(y => y.KullaniciId == userId))))
+            return Forbid();
 
         var yeni = new SahaDenetim
         {
             Ad = dto.Ad.Trim(),
             KayitTarihi = DateTime.Now,
             OlusturanKullaniciId = userId,
+            YetkiTipi = kaynak.YetkiTipi,
             KapaliMi = false
         };
         _db.SahaDenetimler.Add(yeni);
         await _db.SaveChangesAsync(ct);
+
+        if (kaynak.YetkiTipi == 1 && kaynak.YetkiKullanicilar != null)
+        {
+            foreach (var y in kaynak.YetkiKullanicilar)
+            {
+                if (y.KullaniciId == userId) continue;
+                _db.SahaDenetimYetkiKullanicilar.Add(new SahaDenetimYetkiKullanici { SahaDenetimId = yeni.Id, KullaniciId = y.KullaniciId });
+            }
+            await _db.SaveChangesAsync(ct);
+        }
 
         var adimlar = (kaynak.Adimlar ?? new List<SahaDenetimAdim>())
             .OrderBy(a => a.Sira)
@@ -346,9 +444,16 @@ public class SahaDenetimController : ControllerBase
     {
         var userId = _currentUser.GetCurrentUserId();
         var genelYetkili = _yetki.GenelYetkiliMi();
-        var denetim = await _db.SahaDenetimler.AsNoTracking().FirstOrDefaultAsync(x => x.Id == denetimId, ct);
+        var denetim = await _db.SahaDenetimler
+            .AsNoTracking()
+            .Include(x => x.YetkiKullanicilar)
+            .FirstOrDefaultAsync(x => x.Id == denetimId, ct);
         if (denetim == null) return NotFound();
-        if (!genelYetkili && denetim.OlusturanKullaniciId != userId) return Forbid();
+        if (!(genelYetkili ||
+              denetim.YetkiTipi == 0 ||
+              denetim.OlusturanKullaniciId == userId ||
+              (denetim.YetkiTipi == 1 && denetim.YetkiKullanicilar!.Any(y => y.KullaniciId == userId))))
+            return Forbid();
         if (string.IsNullOrWhiteSpace(dto.Ad))
             return BadRequest(new { message = "Adım adı zorunludur." });
 
@@ -375,9 +480,16 @@ public class SahaDenetimController : ControllerBase
 
         var entity = await _db.SahaDenetimAdimlar.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity == null) return NotFound();
-        var denetim = await _db.SahaDenetimler.AsNoTracking().FirstOrDefaultAsync(x => x.Id == entity.SahaDenetimId, ct);
+        var denetim = await _db.SahaDenetimler
+            .AsNoTracking()
+            .Include(x => x.YetkiKullanicilar)
+            .FirstOrDefaultAsync(x => x.Id == entity.SahaDenetimId, ct);
         if (denetim == null) return NotFound();
-        if (!genelYetkili && denetim.OlusturanKullaniciId != userId) return Forbid();
+        if (!(genelYetkili ||
+              denetim.YetkiTipi == 0 ||
+              denetim.OlusturanKullaniciId == userId ||
+              (denetim.YetkiTipi == 1 && denetim.YetkiKullanicilar!.Any(y => y.KullaniciId == userId))))
+            return Forbid();
         if (string.IsNullOrWhiteSpace(dto.Ad))
             return BadRequest(new { message = "Adım adı zorunludur." });
 
@@ -398,9 +510,16 @@ public class SahaDenetimController : ControllerBase
 
         var entity = await _db.SahaDenetimAdimlar.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity == null) return NotFound();
-        var denetim = await _db.SahaDenetimler.AsNoTracking().FirstOrDefaultAsync(x => x.Id == entity.SahaDenetimId, ct);
+        var denetim = await _db.SahaDenetimler
+            .AsNoTracking()
+            .Include(x => x.YetkiKullanicilar)
+            .FirstOrDefaultAsync(x => x.Id == entity.SahaDenetimId, ct);
         if (denetim == null) return NotFound();
-        if (!genelYetkili && denetim.OlusturanKullaniciId != userId) return Forbid();
+        if (!(genelYetkili ||
+              denetim.YetkiTipi == 0 ||
+              denetim.OlusturanKullaniciId == userId ||
+              (denetim.YetkiTipi == 1 && denetim.YetkiKullanicilar!.Any(y => y.KullaniciId == userId))))
+            return Forbid();
 
         entity.IsDeleted = true;
         entity.DeleteDate = DateTime.Now;
@@ -421,9 +540,16 @@ public class SahaDenetimController : ControllerBase
             .Include(x => x.IlgiliUrunler)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (entity == null) return NotFound();
-        var denetim = await _db.SahaDenetimler.AsNoTracking().FirstOrDefaultAsync(x => x.Id == entity.SahaDenetimId, ct);
+        var denetim = await _db.SahaDenetimler
+            .AsNoTracking()
+            .Include(x => x.YetkiKullanicilar)
+            .FirstOrDefaultAsync(x => x.Id == entity.SahaDenetimId, ct);
         if (denetim == null) return NotFound();
-        if (!genelYetkili && denetim.OlusturanKullaniciId != userId) return Forbid();
+        if (!(genelYetkili ||
+              denetim.YetkiTipi == 0 ||
+              denetim.OlusturanKullaniciId == userId ||
+              (denetim.YetkiTipi == 1 && denetim.YetkiKullanicilar!.Any(y => y.KullaniciId == userId))))
+            return Forbid();
 
         entity.YapildiMi = dto.YapildiMi;
         entity.Puan = dto.Puan;
@@ -485,10 +611,17 @@ public class SahaDenetimController : ControllerBase
             .Include(x => x.Fotograflar)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (adim == null) return NotFound();
-        var denetim = await _db.SahaDenetimler.AsNoTracking().FirstOrDefaultAsync(x => x.Id == adim.SahaDenetimId, ct);
+        var denetim = await _db.SahaDenetimler
+            .AsNoTracking()
+            .Include(x => x.YetkiKullanicilar)
+            .FirstOrDefaultAsync(x => x.Id == adim.SahaDenetimId, ct);
         if (denetim == null) return NotFound();
         if (denetim.KapaliMi) return BadRequest(new { message = "Denetim kapalı olduğu için fotoğraf eklenemez." });
-        if (!genelYetkili && denetim.OlusturanKullaniciId != userId) return Forbid();
+        if (!(genelYetkili ||
+              denetim.YetkiTipi == 0 ||
+              denetim.OlusturanKullaniciId == userId ||
+              (denetim.YetkiTipi == 1 && denetim.YetkiKullanicilar!.Any(y => y.KullaniciId == userId))))
+            return Forbid();
 
         if (files == null || files.Count == 0) return BadRequest(new { message = "Dosya seçilmedi." });
 
@@ -527,10 +660,17 @@ public class SahaDenetimController : ControllerBase
         if (foto == null) return NotFound();
         var adim = await _db.SahaDenetimAdimlar.AsNoTracking().FirstOrDefaultAsync(x => x.Id == foto.SahaDenetimAdimId, ct);
         if (adim == null) return NotFound();
-        var denetim = await _db.SahaDenetimler.FirstOrDefaultAsync(x => x.Id == adim.SahaDenetimId, ct);
+        var denetim = await _db.SahaDenetimler
+            .AsNoTracking()
+            .Include(x => x.YetkiKullanicilar)
+            .FirstOrDefaultAsync(x => x.Id == adim.SahaDenetimId, ct);
         if (denetim == null) return NotFound();
         if (denetim.KapaliMi) return BadRequest(new { message = "Denetim kapalı olduğu için fotoğraf silinemez." });
-        if (!genelYetkili && denetim.OlusturanKullaniciId != userId) return Forbid();
+        if (!(genelYetkili ||
+              denetim.YetkiTipi == 0 ||
+              denetim.OlusturanKullaniciId == userId ||
+              (denetim.YetkiTipi == 1 && denetim.YetkiKullanicilar!.Any(y => y.KullaniciId == userId))))
+            return Forbid();
 
         foto.IsDeleted = true;
         foto.DeleteDate = DateTime.Now;
@@ -548,6 +688,7 @@ public class SahaDenetimController : ControllerBase
         public bool KapaliMi { get; set; }
         public int? LokasyonId { get; set; }
         public string? LokasyonAdi { get; set; }
+        public int YetkiTipi { get; set; }
         public int AdimSayisi { get; set; }
     }
 
@@ -556,6 +697,9 @@ public class SahaDenetimController : ControllerBase
         public string? Ad { get; set; }
         public DateTime? KayitTarihi { get; set; }
         public string? LokasyonMagazaKodu { get; set; }
+        /// <summary>0 = Genel (tüm kullanıcılar), 1 = Kişi bazlı</summary>
+        public int YetkiTipi { get; set; } = 1;
+        public List<int>? YetkiKullaniciIds { get; set; }
     }
 
     public class DenetimUpdateDto
@@ -563,6 +707,9 @@ public class SahaDenetimController : ControllerBase
         public string? Ad { get; set; }
         public DateTime? KayitTarihi { get; set; }
         public string? LokasyonMagazaKodu { get; set; }
+        /// <summary>0 = Genel (tüm kullanıcılar), 1 = Kişi bazlı</summary>
+        public int YetkiTipi { get; set; } = 1;
+        public List<int>? YetkiKullaniciIds { get; set; }
     }
 
     public class DenetimDetayDto
@@ -571,6 +718,8 @@ public class SahaDenetimController : ControllerBase
         public string Ad { get; set; } = "";
         public DateTime KayitTarihi { get; set; }
         public string? OlusturanAdSoyad { get; set; }
+        public int YetkiTipi { get; set; }
+        public List<int> YetkiKullaniciIds { get; set; } = new();
         public bool CanDelete { get; set; }
         public bool KapaliMi { get; set; }
         public string? KapatanAdSoyad { get; set; }

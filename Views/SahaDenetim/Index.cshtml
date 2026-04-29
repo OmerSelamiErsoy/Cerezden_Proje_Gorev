@@ -14,6 +14,18 @@
             color: #991b1b;
             border: 1px solid #f5bcbc;
         }
+
+        #saha-denetim-index .badge-soft {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.78rem;
+            border: 1px solid transparent;
+        }
+        #saha-denetim-index .badge-soft.private { background:#eef2ff; color:#3730a3; border-color:#e0e7ff; }
+        #saha-denetim-index .badge-soft.shared { background:#ecfeff; color:#155e75; border-color:#cffafe; }
     </style>
 }
 
@@ -99,6 +111,9 @@
                                 <i class="fas fa-location-dot me-1"></i> {{ d.lokasyonAdi ? (d.lokasyonAdi + ' - ' + (d.lokasyonId || '')) : '-' }}
                                 <span class="mx-2">•</span>
                                 <i class="fas fa-list-ol me-1"></i> Adım Sayısı: {{ d.adimSayisi ?? 0 }}
+                                <span class="mx-2">•</span>
+                                <span v-if="d.yetkiTipi === 0" class="badge-soft shared">Genel Paylaşım</span>
+                                <span v-else class="badge-soft private">Kişi bazlı Paylaşım</span>
                             </div>
                         </div>
                         <i class="fas fa-chevron-right text-muted mt-1"></i>

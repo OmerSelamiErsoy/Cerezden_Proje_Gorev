@@ -43,6 +43,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<SahaDenetimAdimIlgiliKisi> SahaDenetimAdimIlgiliKisiler => Set<SahaDenetimAdimIlgiliKisi>();
     public DbSet<SahaDenetimAdimIlgiliUrun> SahaDenetimAdimIlgiliUrunler => Set<SahaDenetimAdimIlgiliUrun>();
     public DbSet<SahaDenetimAdimFoto> SahaDenetimAdimFotolar => Set<SahaDenetimAdimFoto>();
+    public DbSet<SahaDenetimYetkiKullanici> SahaDenetimYetkiKullanicilar => Set<SahaDenetimYetkiKullanici>();
 
     private int DefaultUserId => _userIdAccessor?.CurrentUserId ?? 1;
 
@@ -75,6 +76,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<SahaDenetimAdimIlgiliKisi>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<SahaDenetimAdimIlgiliUrun>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<SahaDenetimAdimFoto>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<SahaDenetimYetkiKullanici>().HasQueryFilter(e => !e.IsDeleted);
 
         modelBuilder.Entity<ProjeDetayYorum>()
             .HasOne(y => y.InsertedByUser)
@@ -239,6 +241,18 @@ public class ApplicationDbContext : DbContext
             .HasMany(a => a.Fotograflar)
             .WithOne(f => f.SahaDenetimAdim)
             .HasForeignKey(f => f.SahaDenetimAdimId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<SahaDenetim>()
+            .HasMany(x => x.YetkiKullanicilar)
+            .WithOne(y => y.SahaDenetim)
+            .HasForeignKey(y => y.SahaDenetimId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<SahaDenetimYetkiKullanici>()
+            .HasOne(y => y.Kullanici)
+            .WithMany()
+            .HasForeignKey(y => y.KullaniciId)
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<ProjeDetay>()

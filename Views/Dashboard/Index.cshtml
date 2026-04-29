@@ -258,6 +258,9 @@
                                     <span><i class="fas fa-location-dot me-1"></i>{{ d.lokasyonAdi ? (d.lokasyonAdi + ' - ' + (d.lokasyonId || '')) : '-' }}</span>
                                     <span class="mx-1">•</span>
                                     <span><i class="fas fa-list-ol me-1"></i>Adım: {{ d.adimSayisi ?? 0 }}</span>
+                                    <span class="mx-1">•</span>
+                                    <span v-if="d.yetkiTipi === 0" class="badge-soft shared">Genel Paylaşım</span>
+                                    <span v-else class="badge-soft private">Kişi bazlı Paylaşım</span>
                                 </div>
                             </li>
                         </ul>

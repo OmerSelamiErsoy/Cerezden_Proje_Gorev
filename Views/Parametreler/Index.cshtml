@@ -13,12 +13,12 @@
     </div>
     <div class="v-cloak-hidden">
     <ul class="nav nav-tabs mb-4">
-        <li class="nav-item" v-if="genelYetkiliMi"><a class="nav-link" :class="{ active: tab === 'durum' }" href="#" @@click.prevent="tab='durum'">Durumlar</a></li>
+        <li class="nav-item"><a class="nav-link" :class="{ active: tab === 'durum' }" href="#" @@click.prevent="tab='durum'">Durumlar</a></li>
         <li class="nav-item"><a class="nav-link" :class="{ active: tab === 'kategori' }" href="#" @@click.prevent="tab='kategori'">Kategoriler</a></li>
-        <li class="nav-item" v-if="genelYetkiliMi"><a class="nav-link" :class="{ active: tab === 'adetBirimi' }" href="#" @@click.prevent="tab='adetBirimi'">Adet Birimleri</a></li>
-        <li class="nav-item" v-if="genelYetkiliMi"><a class="nav-link" :class="{ active: tab === 'sahaDenetimKategori' }" href="#" @@click.prevent="tab='sahaDenetimKategori'">Saha Denetim Kategorileri</a></li>
+        <li class="nav-item"><a class="nav-link" :class="{ active: tab === 'adetBirimi' }" href="#" @@click.prevent="tab='adetBirimi'">Adet Birimleri</a></li>
+        <li class="nav-item"><a class="nav-link" :class="{ active: tab === 'sahaDenetimKategori' }" href="#" @@click.prevent="tab='sahaDenetimKategori'">Saha Denetim Kategorileri</a></li>
     </ul>
-    <div v-show="genelYetkiliMi && tab === 'durum'">
+    <div v-show="tab === 'durum'">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">Proje / Adım Durumları<button class="btn btn-primary btn-sm" @@click="durumEkle()"><i class="fas fa-plus"></i> Ekle</button></div>
             <table class="table mb-0"><thead><tr><th>Ad</th><th>Sira</th><th></th></tr></thead><tbody>
@@ -34,7 +34,7 @@
             </tbody></table>
         </div>
     </div>
-    <div v-show="genelYetkiliMi && tab === 'adetBirimi'">
+    <div v-show="tab === 'adetBirimi'">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">Adet Birimleri<button class="btn btn-primary btn-sm" @@click="adetBirimiEkle()"><i class="fas fa-plus"></i> Ekle</button></div>
             <table class="table mb-0"><thead><tr><th>Ad</th><th>Sira</th><th></th></tr></thead><tbody>
@@ -42,7 +42,7 @@
             </tbody></table>
         </div>
     </div>
-    <div v-show="genelYetkiliMi && tab === 'sahaDenetimKategori'">
+    <div v-show="tab === 'sahaDenetimKategori'">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">Saha Denetim Kategorileri<button class="btn btn-primary btn-sm" @@click="sdKategoriEkle()"><i class="fas fa-plus"></i> Ekle</button></div>
             <table class="table mb-0"><thead><tr><th>Kategori Adı</th><th></th></tr></thead><tbody>
@@ -113,7 +113,7 @@ createApp({
         var genelYetkiliMi = root && root.getAttribute('data-genel-yetkili') === 'true';
         return {
             genelYetkiliMi: genelYetkiliMi,
-            tab: genelYetkiliMi ? 'durum' : 'kategori',
+            tab: 'durum',
             durumlar: [],
             kategoriler: [],
             adetBirimleri: [],
@@ -129,10 +129,8 @@ createApp({
             axios.get('/api/Parametre/kategoriler').then(r => { this.kategoriler = r.data; }),
             axios.get('/api/Parametre/adet-birimleri').then(r => { this.adetBirimleri = r.data; })
         ];
-        if (this.genelYetkiliMi)
-            promises.push(axios.get('/api/Parametre/durumlar').then(r => { this.durumlar = r.data; }));
-        if (this.genelYetkiliMi)
-            promises.push(axios.get('/api/Parametre/saha-denetim-kategorileri').then(r => { this.sdKategoriler = r.data; }));
+        promises.push(axios.get('/api/Parametre/durumlar').then(r => { this.durumlar = r.data; }));
+        promises.push(axios.get('/api/Parametre/saha-denetim-kategorileri').then(r => { this.sdKategoriler = r.data; }));
         Promise.all(promises).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
     },
     methods: {

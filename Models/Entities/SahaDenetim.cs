@@ -6,6 +6,10 @@ public class SahaDenetim : BaseEntity
     public string Ad { get; set; } = string.Empty;
     public DateTime KayitTarihi { get; set; }
     public int OlusturanKullaniciId { get; set; }
+    /// <summary>0 = Genel (tüm kullanıcılar), 1 = Kişi bazlı</summary>
+    public int YetkiTipi { get; set; }
+
+    public virtual ICollection<SahaDenetimYetkiKullanici>? YetkiKullanicilar { get; set; }
     public int? LokasyonId { get; set; } // LokasyonMagazaKodu int olarak
     public string? LokasyonAdi { get; set; }
     public bool KapaliMi { get; set; }

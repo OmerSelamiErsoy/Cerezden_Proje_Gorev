@@ -31,8 +31,6 @@ public class ParametreController : ControllerBase
     [HttpPost("durumlar")]
     public async Task<ActionResult<DurumDto>> PostDurum([FromBody] DurumDto? dto, CancellationToken ct)
     {
-        if (!_yetkiService.GenelYetkiliMi())
-            return Forbid();
         if (dto == null || string.IsNullOrWhiteSpace(dto.Ad))
             return BadRequest(new { message = "Ad alanı gereklidir." });
         var maxSira = await _db.Durumlar.Select(d => (int?)d.Sira).MaxAsync(ct) ?? 0;
@@ -45,8 +43,6 @@ public class ParametreController : ControllerBase
     [HttpPut("durumlar/{id}")]
     public async Task<IActionResult> PutDurum(int id, [FromBody] DurumDto dto, CancellationToken ct)
     {
-        if (!_yetkiService.GenelYetkiliMi())
-            return Forbid();
         var entity = await _db.Durumlar.FindAsync(new object[] { id }, ct);
         if (entity == null) return NotFound();
         entity.Ad = dto.Ad;
@@ -58,8 +54,6 @@ public class ParametreController : ControllerBase
     [HttpDelete("durumlar/{id}")]
     public async Task<IActionResult> DeleteDurum(int id, CancellationToken ct)
     {
-        if (!_yetkiService.GenelYetkiliMi())
-            return Forbid();
         var entity = await _db.Durumlar.FindAsync(new object[] { id }, ct);
         if (entity == null) return NotFound();
         entity.IsDeleted = true;
@@ -122,8 +116,6 @@ public class ParametreController : ControllerBase
     [HttpPost("adet-birimleri")]
     public async Task<ActionResult<AdetBirimiDto>> PostAdetBirimi([FromBody] AdetBirimiDto? dto, CancellationToken ct)
     {
-        if (!_yetkiService.GenelYetkiliMi())
-            return Forbid();
         if (dto == null || string.IsNullOrWhiteSpace(dto.Ad))
             return BadRequest(new { message = "Ad alanı gereklidir." });
 
@@ -137,8 +129,6 @@ public class ParametreController : ControllerBase
     [HttpPut("adet-birimleri/{id}")]
     public async Task<IActionResult> PutAdetBirimi(int id, [FromBody] AdetBirimiDto dto, CancellationToken ct)
     {
-        if (!_yetkiService.GenelYetkiliMi())
-            return Forbid();
         var entity = await _db.AdetBirimleri.FindAsync(new object[] { id }, ct);
         if (entity == null) return NotFound();
         entity.Ad = dto.Ad;
@@ -150,8 +140,6 @@ public class ParametreController : ControllerBase
     [HttpDelete("adet-birimleri/{id}")]
     public async Task<IActionResult> DeleteAdetBirimi(int id, CancellationToken ct)
     {
-        if (!_yetkiService.GenelYetkiliMi())
-            return Forbid();
         var entity = await _db.AdetBirimleri.FindAsync(new object[] { id }, ct);
         if (entity == null) return NotFound();
         entity.IsDeleted = true;
@@ -175,8 +163,6 @@ public class ParametreController : ControllerBase
     [HttpPost("saha-denetim-kategorileri")]
     public async Task<ActionResult<SahaDenetimKategoriDto>> PostSahaDenetimKategori([FromBody] SahaDenetimKategoriDto? dto, CancellationToken ct)
     {
-        if (!_yetkiService.GenelYetkiliMi())
-            return Forbid();
         if (dto == null || string.IsNullOrWhiteSpace(dto.Ad))
             return BadRequest(new { message = "Kategori adı gereklidir." });
 
@@ -189,8 +175,6 @@ public class ParametreController : ControllerBase
     [HttpPut("saha-denetim-kategorileri/{id}")]
     public async Task<IActionResult> PutSahaDenetimKategori(int id, [FromBody] SahaDenetimKategoriDto dto, CancellationToken ct)
     {
-        if (!_yetkiService.GenelYetkiliMi())
-            return Forbid();
         if (string.IsNullOrWhiteSpace(dto.Ad))
             return BadRequest(new { message = "Kategori adı gereklidir." });
         var entity = await _db.SahaDenetimKategoriler.FindAsync(new object[] { id }, ct);
@@ -203,8 +187,6 @@ public class ParametreController : ControllerBase
     [HttpDelete("saha-denetim-kategorileri/{id}")]
     public async Task<IActionResult> DeleteSahaDenetimKategori(int id, CancellationToken ct)
     {
-        if (!_yetkiService.GenelYetkiliMi())
-            return Forbid();
         var entity = await _db.SahaDenetimKategoriler.FindAsync(new object[] { id }, ct);
         if (entity == null) return NotFound();
         entity.IsDeleted = true;

@@ -69,7 +69,19 @@ public class DashboardController : ControllerBase
         var sdQuery = _db.SahaDenetimler
             .AsNoTracking()
             .Include(x => x.OlusturanKullanici)
+            .Include(x => x.YetkiKullanicilar)
             .AsQueryable();
+
+        // Yetki:
+        // - Genel paylaşım: tüm kullanıcılar
+        // - Kişi bazlı paylaşım: seçili kişi(ler) + oluşturan kişi
+        if (!genelYetkiliMi)
+        {
+            sdQuery = sdQuery.Where(x =>
+                x.YetkiTipi == 0 ||
+                x.OlusturanKullaniciId == userId ||
+                (x.YetkiTipi == 1 && x.YetkiKullanicilar!.Any(y => y.KullaniciId == userId)));
+        }
 
         var sdToplam = await sdQuery.CountAsync(ct);
         var sdAcik = await sdQuery.Where(x => !x.KapaliMi).CountAsync(ct);
@@ -86,7 +98,8 @@ public class DashboardController : ControllerBase
                 LokasyonId = x.LokasyonId,
                 LokasyonAdi = x.LokasyonAdi,
                 OlusturanAdSoyad = x.OlusturanKullanici.AdSoyad,
-                AdimSayisi = _db.SahaDenetimAdimlar.Count(a => a.SahaDenetimId == x.Id)
+                AdimSayisi = _db.SahaDenetimAdimlar.Count(a => a.SahaDenetimId == x.Id),
+                YetkiTipi = x.YetkiTipi
             })
             .Take(5)
             .ToListAsync(ct);
@@ -209,4 +222,5 @@ public class DashboardDenetimItemDto
     public string? LokasyonAdi { get; set; }
     public string? OlusturanAdSoyad { get; set; }
     public int AdimSayisi { get; set; }
+    public int YetkiTipi { get; set; }
 }

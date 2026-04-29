@@ -2,6 +2,60 @@
     Layout = "_AdminLayout";
 }
 
+@section Head {
+    <style>
+        #saha-denetim-yeni .paylasilacak-kisiler-list {
+            max-height: 280px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 8px;
+            background: #fafafa;
+        }
+        #saha-denetim-yeni .paylasilacak-kisiler-list .paylasilacak-kisi-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        #saha-denetim-yeni .paylasilacak-kisiler-list .paylasilacak-kisi-item:hover { background: #f1f5f9; }
+        #saha-denetim-yeni .paylasilacak-kisiler-list .paylasilacak-kisi-item .custom-checkbox-wrap {
+            flex-shrink: 0;
+            width: 22px;
+            height: 22px;
+            position: relative;
+            border-radius: 6px;
+            border: 2px solid #cbd5e1;
+            background: #fff;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        #saha-denetim-yeni .paylasilacak-kisiler-list .paylasilacak-kisi-item.selected .custom-checkbox-wrap {
+            background: #3b82f6;
+            border-color: #3b82f6;
+        }
+        #saha-denetim-yeni .paylasilacak-kisiler-list .paylasilacak-kisi-item .custom-checkbox-wrap .check-icon {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        #saha-denetim-yeni .paylasilacak-kisiler-list .paylasilacak-kisi-item.selected .custom-checkbox-wrap .check-icon { opacity: 1; }
+        #saha-denetim-yeni .paylasilacak-kisiler-list .paylasilacak-kisi-item .custom-checkbox-wrap .check-icon svg {
+            width: 14px;
+            height: 14px;
+            stroke: #fff;
+        }
+        #saha-denetim-yeni .paylasilacak-kisiler-list .paylasilacak-kisi-item .kisi-adi { flex: 1; font-weight: 500; color: #1e293b; }
+        #saha-denetim-yeni .paylasilacak-kisiler-list .paylasilacak-kisi-item .kisi-ceptel { font-size: 0.875rem; color: #64748b; }
+    </style>
+}
+
 <div id="saha-denetim-yeni" data-vue-page v-cloak>
     <div class="v-cloak-loading d-flex align-items-center justify-content-center py-5">
         <div class="w-100 text-center">
@@ -42,6 +96,33 @@
                     <label class="form-label">Kayıt Tarihi</label>
                     <input v-model="form.kayitTarihi" type="date" class="form-control" />
                 </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Paylaşılacak Kişiler</label>
+                    <div>
+                        <label class="me-3"><input type="radio" v-model.number="form.yetkiTipi" :value="0" /> Genel (tüm kullanıcılar)</label>
+                        <label><input type="radio" v-model.number="form.yetkiTipi" :value="1" /> Kişi bazlı</label>
+                    </div>
+                    <div v-if="form.yetkiTipi === 1" class="mt-2">
+                        <div class="paylasilacak-kisiler-list">
+                            <div v-for="k in kullanicilar" :key="k.id" class="paylasilacak-kisi-item"
+                                 :class="{ selected: (form.yetkiKullaniciIds || []).indexOf(k.id) !== -1 }"
+                                 @@click="yetkiKullaniciToggle(k)">
+                                <div class="custom-checkbox-wrap">
+                                    <span class="check-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <span class="kisi-adi">{{ k.adSoyad }}</span>
+                                <span class="kisi-ceptel">{{ k.cepTel || '-' }}</span>
+                            </div>
+                        </div>
+                        <small class="text-muted">Birden fazla kişi seçebilirsiniz.</small>
+                    </div>
+                </div>
+
                 <button class="btn btn-primary" @@click="olustur" :disabled="saving"><i class="fas fa-check me-1"></i> Kaydet</button>
             </div>
         </div>
@@ -61,22 +142,35 @@ createApp({
             loading: false,
             saving: false,
             lokasyonlar: [],
-            form: { ad: '', lokasyonMagazaKodu: '', kayitTarihi: `${yyyy}-${mm}-${dd}` }
+            kullanicilar: [],
+            form: { ad: '', lokasyonMagazaKodu: '', kayitTarihi: `${yyyy}-${mm}-${dd}`, yetkiTipi: 1, yetkiKullaniciIds: [] }
         };
     },
     mounted() {
-        axios.get('/api/saha-denetim/lokasyonlar')
-            .then(r => { this.lokasyonlar = r.data || []; })
-            .finally(() => { if (window.setPageLoading) window.setPageLoading(false); });
+        Promise.all([
+            axios.get('/api/saha-denetim/lokasyonlar').then(r => { this.lokasyonlar = r.data || []; }),
+            axios.get('/api/Kullanicilar').then(r => { this.kullanicilar = r.data || []; })
+        ]).finally(() => {
+            if (window.setPageLoading) window.setPageLoading(false);
+        });
     },
     methods: {
+        yetkiKullaniciToggle(k) {
+            const ids = this.form.yetkiKullaniciIds || [];
+            const idx = ids.indexOf(k.id);
+            if (idx === -1) ids.push(k.id);
+            else ids.splice(idx, 1);
+            this.form.yetkiKullaniciIds = ids;
+        },
         olustur() {
             if (!this.form.ad || !this.form.ad.trim()) { alert('Denetim adı zorunludur.'); return; }
             this.saving = true;
             const payload = {
                 ad: this.form.ad.trim(),
                 lokasyonMagazaKodu: this.form.lokasyonMagazaKodu || null,
-                kayitTarihi: this.form.kayitTarihi ? (this.form.kayitTarihi + 'T00:00:00') : null
+                kayitTarihi: this.form.kayitTarihi ? (this.form.kayitTarihi + 'T00:00:00') : null,
+                yetkiTipi: this.form.yetkiTipi,
+                yetkiKullaniciIds: this.form.yetkiTipi === 1 ? (this.form.yetkiKullaniciIds || []) : null
             };
             axios.post('/api/saha-denetim', payload)
                 .then(r => { window.location.href = '/SahaDenetim/Detay/' + r.data.id; })
