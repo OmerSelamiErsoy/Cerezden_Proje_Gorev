@@ -220,7 +220,7 @@ public class SahaDenetimController : ControllerBase
                     .Select(x => new IlgiliKisiDto { Id = x.Id, AdSoyad = x.AdSoyad, Aciklama = x.Aciklama, Sira = x.Sira }).ToList(),
                 IlgiliUrunler = (a.IlgiliUrunler ?? new List<SahaDenetimAdimIlgiliUrun>())
                     .OrderBy(x => x.Sira).ThenBy(x => x.Id)
-                    .Select(x => new IlgiliUrunDto { Id = x.Id, StokKodu = x.StokKodu, Adet = x.Adet, Aciklama = x.Aciklama, Sira = x.Sira }).ToList(),
+                    .Select(x => new IlgiliUrunDto { Id = x.Id, StokKodu = x.StokKodu, StokAdi = x.StokAdi, Adet = x.Adet, Aciklama = x.Aciklama, Sira = x.Sira }).ToList(),
                 Fotograflar = (a.Fotograflar ?? new List<SahaDenetimAdimFoto>())
                     .OrderBy(x => x.Sira).ThenBy(x => x.Id)
                     .Select(x => new FotoDto { Id = x.Id, Url = x.DosyaYolu, DosyaAdi = x.DosyaAdi, Sira = x.Sira })
@@ -590,6 +590,7 @@ public class SahaDenetimController : ControllerBase
                 {
                     SahaDenetimAdimId = id,
                     StokKodu = stok,
+                    StokAdi = string.IsNullOrWhiteSpace(u.StokAdi) ? null : u.StokAdi.Trim(),
                     Adet = u.Adet,
                     Aciklama = aciklama,
                     Sira = sira++
@@ -786,6 +787,7 @@ public class SahaDenetimController : ControllerBase
     {
         public int Id { get; set; }
         public string StokKodu { get; set; } = "";
+        public string? StokAdi { get; set; }
         public decimal Adet { get; set; }
         public string? Aciklama { get; set; }
         public int Sira { get; set; }
@@ -828,6 +830,7 @@ public class SahaDenetimController : ControllerBase
     public class IlgiliUrunCreateDto
     {
         public string? StokKodu { get; set; }
+        public string? StokAdi { get; set; }
         public decimal Adet { get; set; }
         public string? Aciklama { get; set; }
     }

@@ -13,6 +13,13 @@
         animation: aciklama-blink 1.2s ease-in-out infinite;
     }
     .aciklama-var-link:hover { opacity: 0.9; }
+
+    /* Compact kartlarda (İşlem Bekliyor/Beklemede/İşleme Alındı) açıklama linki mavi olsun */
+    .kanban-card.compact .aciklama-var-link {
+        color: #2563eb !important;
+        animation: none;
+        text-decoration: underline;
+    }
     @@keyframes aciklama-blink {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.4; }
@@ -111,6 +118,67 @@
         font-size: 0.875rem;
         color: #64748b;
     }
+
+    /* Kanban kartları: aktif kolonlarda compact/accordion görünüm */
+    .kanban-card.compact {
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .kanban-card.compact .card-body {
+        padding: 0.6rem 0.75rem !important;
+    }
+    .kanban-compact-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        cursor: pointer;
+        user-select: none;
+    }
+    .kanban-compact-title {
+        font-weight: 800;
+        font-size: 0.86rem;
+        color: #0f172a;
+        line-height: 1.2;
+    }
+    .kanban-compact-meta {
+        font-size: 0.78rem;
+        color: #64748b;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 6px;
+        align-items: center;
+    }
+    .kanban-compact-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        color: #334155;
+        font-size: 0.75rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .kanban-compact-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+        margin-left: 8px;
+    }
+    .kanban-compact-actions a { text-decoration: none; }
+    .kanban-compact-chevron { color: #94a3b8; }
+    .kanban-compact-body {
+        border-top: 1px dashed #e2e8f0;
+        margin-top: 10px;
+        padding-top: 10px;
+    }
 </style>
 <div id="gorevler-page" data-vue-page>
 <div id="gorevler-app" class="gorevler-app" data-grup-id="@(grupId?.ToString() ?? "")" v-cloak>
@@ -135,8 +203,88 @@
             <div class="kanban-column card h-100">
                 <div class="card-header">{{ kolon.ad }} ({{ (kanban.kartlar[kolon.id] || []).length }})</div>
                 <div class="card-body p-3" style="min-height:280px">
-                    <div v-for="kart in (kanban.kartlar && kanban.kartlar[kolon.id]) || []" :key="kart.id" class="kanban-card card" :style="kart.renk ? { borderLeft: '4px solid ' + kart.renk } : {}">
-                        <div class="card-body p-2">
+                    <div v-for="kart in (kanban.kartlar && kanban.kartlar[kolon.id]) || []"
+                         :key="kart.id"
+                         class="kanban-card card"
+                         :class="{ compact: isCompactKolon(kolon) }"
+                         :style="kart.renk ? { borderLeft: '4px solid ' + kart.renk } : {}">
+
+                        <!-- Compact: sadece aktif kolonlar -->
+                        <div v-if="isCompactKolon(kolon)" class="card-body">
+                            <div class="kanban-compact-head" data-bs-toggle="collapse" :data-bs-target="'#gk-c-' + kart.id" aria-expanded="false" @@click.prevent>
+                                <div class="w-100">
+                                    <div class="d-flex justify-content-between align-items-start gap-2">
+                                        <div class="kanban-compact-title" :title="kart.ad">{{ kisaMetin(kart.ad, 55) }}</div>
+                                        <div class="kanban-compact-actions">
+                                            <a href="#" @@click.stop.prevent="yorumAc(kart)" class="text-decoration-none small" title="Yorumlar">
+                                                <i class="fas fa-comment" :class="(kart.yorumSayisi || 0) > 0 ? 'text-danger' : 'text-success'"></i>
+                                                <span class="ms-1">{{ (kart.yorumSayisi || 0) > 0 ? ('Mesaj (' + kart.yorumSayisi + ')') : 'mesaj yaz' }}</span>
+                                            </a>
+                                            <i class="fas fa-chevron-down kanban-compact-chevron"></i>
+                                        </div>
+                                    </div>
+
+                                    <div class="kanban-compact-meta">
+                                        <span v-if="kart.aciklama" class="kanban-compact-pill">
+                                            <i class="fas fa-circle-info"></i>
+                                            <a href="#" class="aciklama-var-link" @@click.stop.prevent="aciklamaPopupAc(kart)">Açıklama var</a>
+                                        </span>
+                                        <span class="kanban-compact-pill">
+                                            <i class="fas fa-user"></i> Sorumlu: <span class="text-danger fw-medium">{{ kart.sorumluAdSoyad || '-' }}</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="collapse" :id="'gk-c-' + kart.id">
+                                <div class="kanban-compact-body">
+                                    <div class="small text-muted mb-2">Oluşturan: {{ kart.olusturanAdSoyad }} - {{ formatDate(kart.olusturmaTarihi) }}</div>
+
+                                    <div class="small text-muted mb-2">
+                                        <span v-if="kart.turu === 0">Atama: Kendine atanmış</span>
+                                        <template v-else-if="kart.turu === 1">
+                                            <span v-if="me && me.genelYetkiliMi" class="atama-link" @@click.prevent="atananlarAc(kart)" title="Paylaşılan kişiler">Paylaşılan Kişiler: ({{ (kart.atananlar || []).length }})</span>
+                                            <span v-else-if="kart.olusturanKullaniciId !== me?.kullaniciId">Paylaşılan Kişiler: Bana Paylaşıldı</span>
+                                            <span v-else class="atama-link" @@click.prevent="atananlarAc(kart)" title="Paylaşılan kişiler">Paylaşılan Kişiler: ({{ (kart.atananlar || []).length }})</span>
+                                        </template>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <label class="form-label small text-muted mb-1">Durum güncelle</label>
+                                        <select v-model="kart.durumId" @@change="durumGuncelle(kart)" class="form-select form-select-sm">
+                                            <option v-for="s in kanban.durumlar" :key="s.id" :value="s.id">{{ s.ad }}</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="dropdown">
+                                            <a href="#" class="text-secondary p-1" data-bs-toggle="dropdown" title="Renk" @@click.prevent><i class="fas fa-palette"></i></a>
+                                            <ul class="dropdown-menu dropdown-menu-start">
+                                                <li class="px-3 py-2 small fw-medium">Renk belirle</li>
+                                                <li class="px-2 pb-2">
+                                                    <div class="d-flex flex-wrap gap-1">
+                                                        <button v-for="c in renkPaleti" :key="c" type="button" class="btn rounded-circle p-2 border" :style="{ background: c }" @@click="renkSecildi(kart, c)" title="Renk seç"></button>
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm" @@click="renkSecildi(kart, null)"><i class="fas fa-eraser me-1"></i> Kaldır</button>
+                                                    </div>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div class="dropdown">
+                                            <a href="#" class="text-secondary p-1" data-bs-toggle="dropdown" title="İşlemler" @@click.prevent><i class="fas fa-cog"></i></a>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li><a class="dropdown-item" href="#" @@click.prevent="atananlarAc(kart)"><i class="fas fa-users me-1"></i> Paylaşılan Kişiler</a></li>
+                                                <li><a class="dropdown-item" href="#" @@click.prevent="logAc(kart)">Log</a></li>
+                                                <li><a class="dropdown-item" href="#" @@click.prevent="gorevDuzenle(kart)">Güncelle</a></li>
+                                                <li><a class="dropdown-item text-danger" href="#" @@click.prevent="gorevSil(kart)">Sil</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Diğer kolonlar: eski görünüm -->
+                        <div v-else class="card-body p-2">
                             <div class="d-flex justify-content-between align-items-start">
                                 <strong class="small" :title="kart.ad">{{ kisaMetin(kart.ad, 40) }}</strong>
                                 <a href="#" @@click.prevent="yorumAc(kart)" class="text-decoration-none small" title="Yorumlar"><i class="fas fa-comment" :class="(kart.yorumSayisi || 0) > 0 ? 'text-danger' : 'text-success'"></i><span v-if="(kart.yorumSayisi || 0) > 0"> - Mesaj ({{ kart.yorumSayisi }})</span><span v-else> - mesaj yaz</span></a>
@@ -389,6 +537,11 @@ createApp({
         Promise.all([p1, p2]).then(() => { if (window.setPageLoading) window.setPageLoading(false); }).catch(() => { if (window.setPageLoading) window.setPageLoading(false); });
     },
     methods: {
+        isCompactKolon(kolon) {
+            const ad = (kolon && kolon.ad) ? String(kolon.ad) : '';
+            // Sadece bu kolonlarda görev kartı dar/accordion görünsün
+            return ad.includes('İşlem Bekliyor') || ad.includes('Beklemede') || ad.includes('İşleme Alındı');
+        },
         yukle() {
             const url = grupId != null ? '/api/Gorevler/kanban?grupId=' + grupId : '/api/Gorevler/kanban';
             return axios.get(url).then(r => { this.kanban = r.data; this.me = r.data.me || null; });

@@ -326,6 +326,52 @@
             justify-content: flex-end;
         }
         #sd-detay .sd-step-right .sd-pill { background: #f8fafc; }
+
+        /* İlgili Ürünler - modern görünüm */
+        #sd-detay .urun-list { display: flex; flex-direction: column; gap: 10px; }
+        #sd-detay .urun-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 12px 12px;
+            background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+            box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+            transition: box-shadow 0.15s ease, transform 0.15s ease;
+        }
+        #sd-detay .urun-item:hover { box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08); transform: translateY(-1px); }
+        #sd-detay .urun-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+        #sd-detay .urun-left { flex: 1; min-width: 0; }
+        #sd-detay .urun-code-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        #sd-detay .urun-code { font-weight: 900; color: #0f172a; letter-spacing: -0.01em; }
+        #sd-detay .urun-name { color: #475569; font-weight: 600; }
+        #sd-detay .urun-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+        #sd-detay .urun-desc { margin-top: 6px; color: #64748b; line-height: 1.25rem; }
+        #sd-detay .urun-actions { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        #sd-detay .icon-btn {
+            border-radius: 999px;
+            padding: 0.28rem 0.55rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #sd-detay .icon-btn i { width: 14px; text-align: center; }
+
+        /* İlgili Kişiler - modern görünüm */
+        #sd-detay .kisi-list { display: flex; flex-direction: column; gap: 10px; }
+        #sd-detay .kisi-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 12px 12px;
+            background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+            box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+            transition: box-shadow 0.15s ease, transform 0.15s ease;
+        }
+        #sd-detay .kisi-item:hover { box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08); transform: translateY(-1px); }
+        #sd-detay .kisi-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+        #sd-detay .kisi-left { flex: 1; min-width: 0; }
+        #sd-detay .kisi-name-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        #sd-detay .kisi-name { font-weight: 900; color: #0f172a; letter-spacing: -0.01em; }
+        #sd-detay .kisi-desc { margin-top: 6px; color: #64748b; line-height: 1.25rem; }
+        #sd-detay .kisi-actions { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
     </style>
 }
 
@@ -414,12 +460,6 @@
                                         </div>
 
                                         <div v-if="a.aciklama" class="sd-step-desc">{{ a.aciklama }}</div>
-
-                                        <div class="step-meta-row">
-                                            <span v-if="hasTip(a, 1)" class="chip chip-tip"><i class="fas fa-star"></i> Puanlama</span>
-                                            <span v-if="hasTip(a, 2)" class="chip chip-tip"><i class="fas fa-users"></i> İlgili Kişiler</span>
-                                            <span v-if="hasTip(a, 4)" class="chip chip-tip"><i class="fas fa-box"></i> İlgili Ürünler</span>
-                                        </div>
                                     </div>
 
                                     <div class="sd-step-right">
@@ -469,15 +509,25 @@
                                     </div>
                                     <div class="section-box">
                                         <div v-if="(a.ilgiliKisiler||[]).length===0" class="text-muted fst-italic small">Kişi yok</div>
-                                        <div v-else class="small d-flex flex-column gap-2">
-                                            <div v-for="(k,idx) in a.ilgiliKisiler" :key="k.id || idx" class="d-flex justify-content-between align-items-start gap-2">
-                                                <div class="w-100">
-                                                    <div class="fw-semibold">{{ k.adSoyad }}</div>
-                                                    <div v-if="k.aciklama" class="text-muted">{{ k.aciklama }}</div>
-                                                </div>
-                                                <div class="d-flex gap-1">
-                                                    <button v-if="!denetim.kapaliMi" class="btn btn-sm btn-outline-secondary" title="Düzenle" @@click="kisiModalAc(a, k, idx)"><i class="fas fa-pen"></i></button>
-                                                    <button v-if="!denetim.kapaliMi" class="btn btn-sm btn-outline-danger" title="Sil" @@click="kisiSil(a, idx)"><i class="fas fa-trash"></i></button>
+                                        <div v-else class="kisi-list">
+                                            <div v-for="(k,idx) in a.ilgiliKisiler" :key="k.id || idx" class="kisi-item">
+                                                <div class="kisi-top">
+                                                    <div class="kisi-left">
+                                                        <div class="kisi-name-row">
+                                                            <div class="kisi-name">{{ k.adSoyad }}</div>
+                                                            <span v-if="k.aciklama" class="sd-pill muted"><i class="fas fa-comment-dots"></i> Açıklama</span>
+                                                        </div>
+                                                        <div v-if="k.aciklama" class="kisi-desc">{{ k.aciklama }}</div>
+                                                    </div>
+
+                                                    <div class="kisi-actions" v-if="!denetim.kapaliMi">
+                                                        <button class="btn btn-sm btn-outline-secondary icon-btn" title="Düzenle" @@click="kisiModalAc(a, k, idx)">
+                                                            <i class="fas fa-pen"></i><span class="d-none d-md-inline">Düzenle</span>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger icon-btn" title="Sil" @@click="kisiSil(a, idx)">
+                                                            <i class="fas fa-trash"></i><span class="d-none d-md-inline">Sil</span>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -494,18 +544,29 @@
                                     </div>
                                     <div class="section-box">
                                         <div v-if="(a.ilgiliUrunler||[]).length===0" class="text-muted fst-italic small">Ürün yok</div>
-                                        <div v-else class="small d-flex flex-column gap-2">
-                                            <div v-for="(u,idx) in a.ilgiliUrunler" :key="u.id || idx" class="d-flex justify-content-between align-items-start gap-2">
-                                                <div class="w-100">
-                                                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                                                        <span class="fw-semibold">{{ u.stokKodu }}</span>
-                                                        <span class="chip chip-muted"><i class="fas fa-hashtag"></i> {{ u.adet }}</span>
+                                        <div v-else class="urun-list">
+                                            <div v-for="(u,idx) in a.ilgiliUrunler" :key="u.id || idx" class="urun-item">
+                                                <div class="urun-top">
+                                                    <div class="urun-left">
+                                                        <div class="urun-code-row">
+                                                            <div class="urun-code">{{ u.stokKodu }}</div>
+                                                            <div v-if="u.stokAdi" class="urun-name">{{ u.stokAdi }}</div>
+                                                        </div>
+                                                        <div class="urun-meta">
+                                                            <span class="sd-pill muted"><i class="fas fa-hashtag"></i> {{ u.adet }}</span>
+                                                            <span v-if="u.aciklama" class="sd-pill muted"><i class="fas fa-comment-dots"></i> Açıklama</span>
+                                                        </div>
+                                                        <div v-if="u.aciklama" class="urun-desc">{{ u.aciklama }}</div>
                                                     </div>
-                                                    <div v-if="u.aciklama" class="text-muted">{{ u.aciklama }}</div>
-                                                </div>
-                                                <div class="d-flex gap-1">
-                                                    <button v-if="!denetim.kapaliMi" class="btn btn-sm btn-outline-secondary" title="Düzenle" @@click="urunModalAc(a, u, idx)"><i class="fas fa-pen"></i></button>
-                                                    <button v-if="!denetim.kapaliMi" class="btn btn-sm btn-outline-danger" title="Sil" @@click="urunSil(a, idx)"><i class="fas fa-trash"></i></button>
+
+                                                    <div class="urun-actions" v-if="!denetim.kapaliMi">
+                                                        <button class="btn btn-sm btn-outline-secondary icon-btn" title="Düzenle" @@click="urunModalAc(a, u, idx)">
+                                                            <i class="fas fa-pen"></i><span class="d-none d-md-inline">Düzenle</span>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger icon-btn" title="Sil" @@click="urunSil(a, idx)">
+                                                            <i class="fas fa-trash"></i><span class="d-none d-md-inline">Sil</span>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -689,6 +750,10 @@
                             <input v-model="urunModal.stokKodu" class="form-control" />
                         </div>
                         <div class="mb-3">
+                            <label class="form-label">Stok Adı</label>
+                            <input v-model="urunModal.stokAdi" class="form-control" />
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label">Adet</label>
                             <input v-model.number="urunModal.adet" type="number" step="0.01" class="form-control" />
                         </div>
@@ -862,7 +927,7 @@ createApp({
             adimForm: { id: null, ad: '', aciklama: '', kategoriId: null, tipler: 0, sira: 1 },
             adimTipSecim: { puanlama: false, ilgiliKisiler: false, ilgiliUrunler: false },
             kisiModal: { adimId: null, idx: null, adSoyad: '', aciklama: '' },
-            urunModal: { adimId: null, idx: null, stokKodu: '', adet: 0, aciklama: '' },
+            urunModal: { adimId: null, idx: null, stokKodu: '', stokAdi: '', adet: 0, aciklama: '' },
             denetimGuncelleForm: { ad: '', lokasyonMagazaKodu: '', yetkiTipi: 1, yetkiKullaniciIds: [] },
             klonlaForm: { ad: '' }
         };
@@ -1104,6 +1169,7 @@ createApp({
                 adimId: a.id,
                 idx: (typeof idx === 'number') ? idx : null,
                 stokKodu: urun ? (urun.stokKodu || '') : '',
+                stokAdi: urun ? (urun.stokAdi || '') : '',
                 adet: urun ? Number(urun.adet || 0) : 0,
                 aciklama: urun ? (urun.aciklama || '') : ''
             };
@@ -1115,7 +1181,12 @@ createApp({
             if (!this.urunModal.stokKodu || !this.urunModal.stokKodu.trim()) { alert('Stok Kodu zorunludur.'); return; }
             const adet = Number(this.urunModal.adet || 0);
             a.ilgiliUrunler = (a.ilgiliUrunler || []);
-            const item = { stokKodu: this.urunModal.stokKodu.trim(), adet: isNaN(adet) ? 0 : adet, aciklama: (this.urunModal.aciklama || '').trim() || null };
+            const item = {
+                stokKodu: this.urunModal.stokKodu.trim(),
+                stokAdi: (this.urunModal.stokAdi || '').trim() || null,
+                adet: isNaN(adet) ? 0 : adet,
+                aciklama: (this.urunModal.aciklama || '').trim() || null
+            };
             if (this.urunModal.idx === null) a.ilgiliUrunler.push(item);
             else a.ilgiliUrunler.splice(this.urunModal.idx, 1, item);
             bootstrap.Modal.getInstance(document.getElementById('sdUrunModal')).hide();
@@ -1135,7 +1206,7 @@ createApp({
                 personelYorum: a.personelYorum || null,
                 not: a.not || null,
                 ilgiliKisiler: (a.ilgiliKisiler || []).map(x => ({ adSoyad: x.adSoyad, aciklama: x.aciklama || null })),
-                ilgiliUrunler: (a.ilgiliUrunler || []).map(x => ({ stokKodu: x.stokKodu, adet: x.adet, aciklama: x.aciklama || null }))
+                ilgiliUrunler: (a.ilgiliUrunler || []).map(x => ({ stokKodu: x.stokKodu, stokAdi: x.stokAdi || null, adet: x.adet, aciklama: x.aciklama || null }))
             };
             axios.put('/api/saha-denetim/adim/' + a.id + '/doldur', payload).catch(() => {});
         }
